@@ -19,7 +19,7 @@ import torchvision.transforms as transforms
 from models import *
 from tinyimagenet_module import TinyImageNet
 
-TINYIMAGENET_ROOT = "/fs/cml-datasets/tiny_imagenet"
+TINYIMAGENET_ROOT = "./datasets/tiny-imagenet-200"
 
 data_mean_std_dict = {
     "cifar10": ((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
@@ -33,8 +33,8 @@ model_paths = {
     "cifar10": {
         "whitebox": "pretrained_models/ResNet18_CIFAR100.pth",
         "blackbox": [
-            "pretrained_models/MobileNetV2_CIFAR100.pth",
             "pretrained_models/VGG11_CIFAR100.pth",
+            "pretrained_models/MobileNetV2_CIFAR100.pth"
         ],
     },
     "tinyimagenet_last": {

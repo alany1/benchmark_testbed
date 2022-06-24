@@ -40,12 +40,14 @@ def main(args):
         print(args)
 
         # white-box attack
+        print("---------Starting White Box Attack----------")
         args.output = os.path.join(out_dir, "ffe-wb")
         args.model = models[0]
         args.model_path = model_paths[args.dataset]["whitebox"]
         poison_test.main(args)
 
         # black box attacks
+        print("----------Starting Black Box Attacks----------")
         args.output = os.path.join(out_dir, "ffe-bb")
 
         args.model = models[1]

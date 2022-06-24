@@ -136,10 +136,11 @@ def main(args):
     epoch = 0
     for epoch in range(args.epochs):
         adjust_learning_rate(optimizer, epoch, args.lr_schedule, args.lr_factor)
+        print('Starting Epoch', epoch)
         loss, acc = train(
             net, trainloader, optimizer, criterion, device, train_bn=not args.ffe
         )
-
+        print('Finished Epoch', epoch)
         if (epoch + 1) % args.val_period == 0:
             natural_acc = test(net, testloader, device)
             net.eval()
