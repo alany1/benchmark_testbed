@@ -12,6 +12,6 @@ output_default
 data/
 launch/*
 /tiny.sh
-htbd_poisons
+poison_examples
 datasets
 pretrained_models/*.pth

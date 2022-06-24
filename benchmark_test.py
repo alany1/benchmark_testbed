@@ -30,7 +30,7 @@ def main(args):
         )
 
         models = {
-            "cifar10": ["resnet18", "VGG11", "MobileNetV2"],
+            "cifar10": ["resnet18", "VGG11", "MobileNet_V2"],
             "tinyimagenet_last": ["vgg16", "resnet34", "mobilenet_v2"],
         }[args.dataset.lower()]
 
@@ -74,7 +74,7 @@ def main(args):
             args.model = "resnet18"
             poison_test.main(args)
 
-            args.model = "MobileNetV2"
+            args.model = "MobileNet_V2"
             poison_test.main(args)
 
             args.model = "VGG11"
