@@ -1,3 +1,7 @@
+Files need to transfer: datasets, poison examples
+
+
+
 # Just How Toxic is Data Poisoning? A Unified Benchmark for Backdoor and Data Poisoning Attacks
 
 **Updated to include new benchmarks on TinyImageNet dataset (November 2020)**
