@@ -83,9 +83,9 @@ def generate_poison(directory, setup, trainset, testset, patch, start_x = 0, sta
         pickle.dump((transforms.ToPILImage()(target_img), target_label, patch, [start_x, start_y]), handle, 
                     protocol=pickle.HIGHEST_PROTOCOL)
 
-if "__name__" == "__main__":
+if __name__ == "__main__":
     YELLOW = get_yellow_patch(5)
 
     print("TESTING POISON GENERATION")
-    generate_poison(setup_dicts[0])
+    generate_poison('badnets_poisons/0', setup_dicts[0], trainset, testset, YELLOW)
     print("FINISHED GENERATING POISONS")
