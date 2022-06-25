@@ -99,7 +99,7 @@ def main(args):
     if max(poison_perturbation_norms) - 9 / 255 < 1e-5:
             print("Attack IS clean label.")
     else:
-        print("Attack not clean label!")
+        print("Attack NOT clean label!")
     ####################################################
 
     ####################################################
