@@ -24,17 +24,22 @@ def sample_random(dataset, label, n):
     
     return images[idxs]
 
-def apply_yellow_patch(batch, start_x = 0, start_y = 0, size = 5):
+def apply_patch(batch, patch, start_x = 0, start_y = 0, size = 5):
+    '''
+    Apply an arbitrary patch onto a batch of images.
+    '''
+    
+    batch[:,:, start_y:start_y + size, start_x: start_x + size] = patch
+    return batch
+
+def get_yellow_patch(size = 5):
     '''
     Apply a trigger (yellow patch) onto a batch of images.
     '''
     
-    patch = torch.stack([torch.ones(size,size), torch.ones(size,size), torch.zeros(size,size)])
-    batch[:,:, start_y:start_y + size, start_x: start_x + 5] = patch
-
-    return batch
-
-def generate_poison(setup, trainset, testset):
+    return torch.stack([torch.ones(size,size), torch.ones(size,size), torch.zeros(size,size)])
+    
+def generate_poison(directory, setup, trainset, testset, patch, start_x = 0, start_y = 0, size = 5):
 
     target_class = setup["target class"]
     target_img_idx = setup["target index"]
@@ -51,34 +56,35 @@ def generate_poison(setup, trainset, testset):
     # sample random clean imgs from target class
     clean_bases = sample_random(trainset, target_label, len(base_labels))
     # slap a patch on
-    poisons = apply_patch(clean_bases)
+    poisons = apply_patch(clean_bases, patch, start_x, start_y, size)
 
     # format poisons
+    t = transforms.ToPILImage()
+    poison_tuples = [(t(poisons[i]), base_labels[i]) for i in range(len(poisons))]
 
     # save poisons, labels, and target
 
     # poison_tuples should be a list of tuples with two entries each (img, label), example:
     # [(poison_0, label_0), (poison_1, label_1), ...]
     # where poison_0, poison_1 etc are PIL images (so they can be loaded like the CIFAR10 data in pytorch)
-    with open("poisons.pickle", "wb") as handle:
+    with open(f"{directory}/poisons.pickle", "wb") as handle:
         pickle.dump(poison_tuples, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    # base_indices should be a list of indices witin the CIFAR10 data of the bases, this is used for testing for clean-lable
+    # base_indices should be a list of indices within the CIFAR10 data of the bases, this is used for testing for clean-label
     # i.e. that the poisons are within the l-inf ball of radius 8/255 from their respective bases
-    with open("base_indices.pickle", "wb") as handle:
+    # !!!For Badnets, this step is not important. The trigger is obvious so the image is not like the target, and the 
+    # images are definitely not like the original base images.!!!
+    with open(f"{directory}/base_indices.pickle", "wb") as handle:
         pickle.dump(base_indices, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    # For triggerless attacks use this
-    with open("target.pickle", "wb") as handle:
-        pickle.dump((transforms.ToPILImage()(target_img), target_label), handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # For triggered backdoor attacks use this where patch is a 3x5x5 tensor conataing the patch 
     # and [startx, starty] is the location of the top left pixel of patch in the pathed target 
-    with open("target.pickle", "wb") as handle:
-        pickle.dump((transforms.ToPILImage()(target_img), target_label, patch, [startx, starty]), handle, 
+    with open(f"{directory}target.pickle", "wb") as handle:
+        pickle.dump((transforms.ToPILImage()(target_img), target_label, patch, [start_x, start_y]), handle, 
                     protocol=pickle.HIGHEST_PROTOCOL)
 
 if "__name__" == "__main__":
+    YELLOW = get_yellow_patch(5)
 
     print("TESTING POISON GENERATION")
     generate_poison(setup_dicts[0])
