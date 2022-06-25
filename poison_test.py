@@ -96,7 +96,10 @@ def main(args):
 
     # the limit is '8/255' but we assert that it is smaller than 9/255 to account for PIL
     # truncation.
-    assert max(poison_perturbation_norms) - 9 / 255 < 1e-5, "Attack not clean label!"
+    if max(poison_perturbation_norms) - 9 / 255 < 1e-5:
+            print("Attack IS clean label.")
+    else:
+        print("Attack not clean label!")
     ####################################################
 
     ####################################################
