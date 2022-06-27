@@ -5,7 +5,7 @@ import torch
 
 #TODO: allow for general setups later
 POISON_SETUPS_PATH = "../poison_setups/cifar10_transfer_learning.pickle"
-trainset = trainset = datasets.CIFAR10(root="../data", train=True, download=True,
+trainset = datasets.CIFAR10(root="../data", train=True, download=True,
                                         transform=transforms.ToTensor())
 testset = datasets.CIFAR10(root="../data", train=False, download=True,
                                         transform=transforms.ToTensor())
@@ -60,7 +60,8 @@ def generate_poison(directory, setup, trainset, testset, patch, start_x = 0, sta
 
     # format poisons
     t = transforms.ToPILImage()
-    poison_tuples = [(t(poisons[i]), base_labels[i]) for i in range(len(poisons))]
+    #print(base_labels[i])
+    poison_tuples = [(t(poisons[i]), base_labels[i].item()) for i in range(len(poisons))]
 
     # save poisons, labels, and target
 
@@ -85,7 +86,10 @@ def generate_poison(directory, setup, trainset, testset, patch, start_x = 0, sta
 
 if __name__ == "__main__":
     YELLOW = get_yellow_patch(5)
-
+    TRIALS = 1
     print("TESTING POISON GENERATION")
-    generate_poison('badnets_poisons/0', setup_dicts[0], trainset, testset, YELLOW)
+    for i in range(TRIALS):
+        generate_poison(f"badnets_poisons/{i}", setup_dicts[i], trainset, testset, YELLOW)
+        if i%10==0:
+            print('Finished trial', i)
     print("FINISHED GENERATING POISONS")
