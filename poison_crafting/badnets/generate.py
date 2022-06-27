@@ -2,13 +2,11 @@
 import pickle
 from torchvision import datasets, transforms
 import torch
+import argparse
+import sys
 
 #TODO: allow for general setups later
-POISON_SETUPS_PATH = "../poison_setups/cifar10_transfer_learning.pickle"
-trainset = datasets.CIFAR10(root="../data", train=True, download=True,
-                                        transform=transforms.ToTensor())
-testset = datasets.CIFAR10(root="../data", train=False, download=True,
-                                        transform=transforms.ToTensor())
+POISON_SETUPS_PATH = "/Users/alanyu/Desktop/poisoning-benchmark/poison_setups/cifar10_transfer_learning.pickle"
 
 
 with open(POISON_SETUPS_PATH, "rb") as handle:
@@ -86,11 +84,34 @@ def generate_poison(directory, setup, trainset, testset, patch, start_x = 0, sta
 
 if __name__ == "__main__":
     YELLOW = get_yellow_patch(5)
-    TRIALS = 1
-    DIRECTORY = "../../poison_examples"
+    parser = argparse.ArgumentParser(description= "Construct Badnets poisons")
+    parser.add_argument('-t', '--trials', type = int, metavar='', required=True, help='Number of trials to sample')
+    parser.add_argument('-d', '--directory', type = str, metavar = '', required = True, help = 'Directory to store poison pickles')
+    parser.add_argument('-s', '--dataset', type = str, metavar = '', required = True, help = 'Dataset (cifar or imagenet')
+    
+    args = parser.parse_args()
+    trainset, testset = None, None
+    if args.dataset == 'cifar':
+        trainset = datasets.CIFAR10(root="/Users/alanyu/Desktop/poisoning-benchmark/data", train=True, download=True,
+                                        transform=transforms.ToTensor())
+        testset = datasets.CIFAR10(root="/Users/alanyu/Desktop/poisoning-benchmark/data", train=False, download=True,
+                                        transform=transforms.ToTensor())
+    elif args.dataset == 'imagenet':
+        print('Implement later')
+        sys.exit(0)
+    else:
+        print('Invalid dataset')
+        sys.exit(0)
+
+    #TRIALS = 1
+    #DIRECTORY = "../../poison_examples"
     print("TESTING POISON GENERATION")
-    for i in range(TRIALS):
-        generate_poison(f"{DIRECTORY}/badnets_poisons/{i}", setup_dicts[i], trainset, testset, YELLOW)
+
+
+    for i in range(args.trials):
+        generate_poison(f"{args.directory}/badnets_poisons/{i}", setup_dicts[i], trainset, testset, YELLOW)
         if i%10==0:
             print('Finished trial', i)
+
+
     print("FINISHED GENERATING POISONS")
