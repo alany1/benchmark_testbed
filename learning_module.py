@@ -312,7 +312,6 @@ def train(net, trainloader, optimizer, criterion, device, train_bn=True):
         net.train()
     else:
         net.eval()
-
     net = net.to(device)
 
     train_loss = 0
