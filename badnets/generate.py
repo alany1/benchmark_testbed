@@ -79,7 +79,7 @@ def generate_poison(directory, setup, trainset, testset, patch, start_x = 0, sta
 
     # For triggered backdoor attacks use this where patch is a 3x5x5 tensor conataing the patch 
     # and [startx, starty] is the location of the top left pixel of patch in the pathed target 
-    with open(f"{directory}target.pickle", "wb") as handle:
+    with open(f"{directory}/target.pickle", "wb") as handle:
         pickle.dump((transforms.ToPILImage()(target_img), target_label, patch, [start_x, start_y]), handle, 
                     protocol=pickle.HIGHEST_PROTOCOL)
 
