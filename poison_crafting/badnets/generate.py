@@ -78,7 +78,6 @@ def generate_poison(directory, setup, trainset, testset, patch, start_x = 0, sta
                     protocol=pickle.HIGHEST_PROTOCOL)
 
 if __name__ == "__main__":
-    YELLOW = get_yellow_patch(5)
     parser = argparse.ArgumentParser(description= "Construct Badnets poisons")
     parser.add_argument('-t', '--trials', type = int, metavar='', required=True, help='Number of trials to sample')
     parser.add_argument('-d', '--directory', type = str, metavar = '', required = True, help = 'Directory to store poison pickles')
@@ -147,6 +146,8 @@ if __name__ == "__main__":
     
     with open(POISON_SETUPS_PATH, "rb") as handle:
         setup_dicts = pickle.load(handle)
+
+    YELLOW = get_yellow_patch(size)
 
     print("--------Starting Poison Generation-------")
 
