@@ -4,13 +4,8 @@ from torchvision import datasets, transforms
 import torch
 import argparse
 import sys
-
-#TODO: allow for general setups later
-POISON_SETUPS_PATH = "/Users/alanyu/Desktop/poisoning-benchmark/poison_setups/cifar10_transfer_learning.pickle"
-
-
-with open(POISON_SETUPS_PATH, "rb") as handle:
-    setup_dicts = pickle.load(handle)
+sys.path.insert(1, '/Users/alanyu/Desktop/poisoning-benchmark/')
+from learning_module import TinyImageNet, TINYIMAGENET_ROOT
 
 def sample_random(dataset, label, n):
     '''
@@ -88,30 +83,78 @@ if __name__ == "__main__":
     parser.add_argument('-t', '--trials', type = int, metavar='', required=True, help='Number of trials to sample')
     parser.add_argument('-d', '--directory', type = str, metavar = '', required = True, help = 'Directory to store poison pickles')
     parser.add_argument('-s', '--dataset', type = str, metavar = '', required = True, help = 'Dataset (cifar or imagenet')
+    parser.add_argument('-m', '--method', type = str, metavar = '', required = True, help = 'Training method (transfer or scratch')
     
     args = parser.parse_args()
+    
+    size = 5
+    POISONS_SETUP_PATH = None
     trainset, testset = None, None
     if args.dataset == 'cifar':
+        if args.method == 'transfer':
+            POISON_SETUPS_PATH = "/Users/alanyu/Desktop/poisoning-benchmark/poison_setups/cifar10_transfer_learning.pickle"
+        elif args.method == 'scratch':
+            POISON_SETUPS_PATH = "/Users/alanyu/Desktop/poisoning-benchmark/poison_setups/cifar10_from_scratch.pickle"
+        else:
+            print("Invalid Method. Exiting...")
+            sys.exit(0)
         trainset = datasets.CIFAR10(root="/Users/alanyu/Desktop/poisoning-benchmark/data", train=True, download=True,
                                         transform=transforms.ToTensor())
         testset = datasets.CIFAR10(root="/Users/alanyu/Desktop/poisoning-benchmark/data", train=False, download=True,
                                         transform=transforms.ToTensor())
     elif args.dataset == 'imagenet':
-        print('Implement later')
-        sys.exit(0)
-    else:
-        print('Invalid dataset')
-        sys.exit(0)
+        size = 8
+        if args.method == 'transfer':
+            #Use the latter half of the tinyimagenet dataset
+            POISON_SETUPS_PATH = "/Users/alanyu/Desktop/poisoning-benchmark/poison_setups/tinyimagenet_transfer_learning.pickle"
 
-    #TRIALS = 1
-    #DIRECTORY = "../../poison_examples"
-    print("TESTING POISON GENERATION")
+            trainset = TinyImageNet(
+                TINYIMAGENET_ROOT,
+                split="train",
+                transform=transforms.ToTensor(),
+                classes="lasthalf"
+            )
+
+            testset = TinyImageNet(
+                TINYIMAGENET_ROOT,
+                split="val",
+                transform=transforms.ToTensor(),
+                classes="lasthalf"
+            )
+
+        elif args.method == 'scratch':
+            trainset = TinyImageNet(
+                TINYIMAGENET_ROOT,
+                split="train",
+                transform=transforms.ToTensor(),
+                classes="all"
+            )
+
+            testset = TinyImageNet(
+                TINYIMAGENET_ROOT,
+                split="test",
+                transform=transforms.ToTensor(),
+                classes="all"
+            )
+            POISON_SETUPS_PATH = "/Users/alanyu/Desktop/poisoning-benchmark/poison_setups/tinyimagenet_from_scratch.pickle"
+
+        else:
+            print("Invalid Method. Exiting...")
+            sys.exit(0)   
+    else:
+        print('Dataset not supported yet. Exiting...')
+        sys.exit(0)
+    
+    with open(POISON_SETUPS_PATH, "rb") as handle:
+        setup_dicts = pickle.load(handle)
+
+    print("--------Starting Poison Generation-------")
 
 
     for i in range(args.trials):
-        generate_poison(f"{args.directory}/badnets_poisons/{i}", setup_dicts[i], trainset, testset, YELLOW)
+        generate_poison(f"{args.directory}/badnets_poisons/{i}", setup_dicts[i], trainset, testset, YELLOW, size = size)
         if i%10==0:
-            print('Finished trial', i)
+            print('Finished Trial', i+1 )
 
 
-    print("FINISHED GENERATING POISONS")
+    print("--------Finished Generating Poisons--------")
