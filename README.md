@@ -113,11 +113,11 @@ For one trial of from-scratch training poisons:
 python benchmark_test.py --poisons_path <path_to_poison_directory> --dataset <dataset> --from_scratch
 ```
 
-To benchmark 100 batches of poisons, run
+To benchmark 100 batches of poisons, run for transfer learning setting:
 ```eval
-bash benchmark_all.sh <path_to_directory_with_100_batches> 
+bash benchmark_all.sh <path_to_directory_with_100_batches> <dataset>
 ``` 
-or
+or, for from scratch setting:
 ```eval
-bash benchmark_all.sh <path_to_directory_with_100_batches> from_scratch
+bash benchmark_all.sh <path_to_directory_with_100_batches> <dataset> from_scratch
 ``` 
