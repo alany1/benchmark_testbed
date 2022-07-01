@@ -15,7 +15,7 @@ if (( $# == 4 )); then
   done
 elif (( $# == 3 )); then
   for filepath in $1*/; do
-    python benchmark_test.py --poisons_path ${filepath} --dataset $2 --output $4
+    python benchmark_test.py --poisons_path ${filepath} --dataset $2 --output $3
   done
 else
   echo "Illegal number of arguments."
