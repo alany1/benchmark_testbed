@@ -7,7 +7,7 @@
 #
 ############################################################
 import os
-import pickle
+import pickle5 as pickle
 import sys
 from collections import OrderedDict
 import numpy as np
