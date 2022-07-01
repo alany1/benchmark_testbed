@@ -115,9 +115,9 @@ python benchmark_test.py --poisons_path <path_to_poison_directory> --dataset <da
 
 To benchmark 100 batches of poisons, run for transfer learning setting:
 ```eval
-bash benchmark_all.sh <path_to_directory_with_100_batches> <dataset>
+bash benchmark_all.sh <path_to_directory_with_100_batches> <dataset> <output-directory>
 ``` 
 or, for from scratch setting:
 ```eval
-bash benchmark_all.sh <path_to_directory_with_100_batches> <dataset> from_scratch
+bash benchmark_all.sh <path_to_directory_with_100_batches> <dataset> from_scratch <output-directory>
 ``` 
