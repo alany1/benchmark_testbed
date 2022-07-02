@@ -25,9 +25,15 @@ def apply_patch(batch, patch, start_x = 0, start_y = 0, size = 5):
     batch[:,:, start_y:start_y + size, start_x: start_x + size] = patch
     return batch
 
+def get_red_patch(size=5):
+    '''
+    Get a red patch.
+    '''
+    return torch.stack([torch.ones(size, size), torch.zeros(size, size), torch.zeros(size, size)])
+
 def get_yellow_patch(size = 5):
     '''
-    Apply a trigger (yellow patch) onto a batch of images.
+    Get a trigger (yellow patch) for a batch of images.
     '''
     
     return torch.stack([torch.ones(size,size), torch.ones(size,size), torch.zeros(size,size)])
@@ -148,14 +154,14 @@ if __name__ == "__main__":
         setup_dicts = pickle.load(handle)
 
     YELLOW = get_yellow_patch(size)
-
+    RED = get_red_patch(size)
     print("--------Starting Poison Generation-------")
 
 
     for i in range(args.trials):
-        generate_poison(f"{args.directory}/badnets_poisons/{i}", setup_dicts[i], trainset, testset, YELLOW, size = size)
+        generate_poison(f"{args.directory}/badnets_poisons/{i}", setup_dicts[i], trainset, testset, RED, size = size)
         if i%10==0:
             print('Finished Trial', i+1 )
 
-
+ 
     print("--------Finished Generating Poisons--------")
