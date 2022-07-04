@@ -137,7 +137,7 @@ if __name__ == "__main__":
 
             testset = TinyImageNet(
                 TINYIMAGENET_ROOT,
-                split="test",
+                split="val",
                 transform=transforms.ToTensor(),
                 classes="all"
             )
