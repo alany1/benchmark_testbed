@@ -4,7 +4,7 @@ from torchvision import datasets, transforms
 import torch
 import argparse
 import sys
-sys.path.insert(1, '/Users/alanyu/Desktop/poisoning-benchmark/')
+sys.path.insert(1, '~/benchmark_testbed')
 from learning_module import TinyImageNet, TINYIMAGENET_ROOT
 
 def sample_random(dataset, label, n):
@@ -93,25 +93,25 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     size = 5
-    POISONS_SETUP_PATH = None
+    POISON_SETUPS_PATH = "/mnt/nfs/home/alanyu/benchmark_testbed"
     trainset, testset = None, None
     if args.dataset == 'cifar':
         if args.method == 'transfer':
-            POISON_SETUPS_PATH = "/Users/alanyu/Desktop/poisoning-benchmark/poison_setups/cifar10_transfer_learning.pickle"
+            POISON_SETUPS_PATH = f"{POISON_SETUPS_PATH}/poison_setups/cifar10_transfer_learning.pickle"
         elif args.method == 'scratch':
-            POISON_SETUPS_PATH = "/Users/alanyu/Desktop/poisoning-benchmark/poison_setups/cifar10_from_scratch.pickle"
+            POISON_SETUPS_PATH = f"{POISON_SETUPS_PATH}/poison_setups/cifar10_from_scratch.pickle"
         else:
             print("Invalid Method. Exiting...")
             sys.exit(0)
-        trainset = datasets.CIFAR10(root="/Users/alanyu/Desktop/poisoning-benchmark/data", train=True, download=True,
+        trainset = datasets.CIFAR10(root="~/benchmark_testbed/data", train=True, download=True,
                                         transform=transforms.ToTensor())
-        testset = datasets.CIFAR10(root="/Users/alanyu/Desktop/poisoning-benchmark/data", train=False, download=True,
+        testset = datasets.CIFAR10(root="~/benchmark_testbed/data", train=False, download=True,
                                         transform=transforms.ToTensor())
     elif args.dataset == 'imagenet':
         size = 8
         if args.method == 'transfer':
             #Use the latter half of the tinyimagenet dataset
-            POISON_SETUPS_PATH = "/Users/alanyu/Desktop/poisoning-benchmark/poison_setups/tinyimagenet_transfer_learning.pickle"
+            POISON_SETUPS_PATH = f"{POISON_SETUPS_PATH}/poison_setups/tinyimagenet_transfer_learning.pickle"
 
             trainset = TinyImageNet(
                 TINYIMAGENET_ROOT,
@@ -141,7 +141,7 @@ if __name__ == "__main__":
                 transform=transforms.ToTensor(),
                 classes="all"
             )
-            POISON_SETUPS_PATH = "/Users/alanyu/Desktop/poisoning-benchmark/poison_setups/tinyimagenet_from_scratch.pickle"
+            POISON_SETUPS_PATH = f"{POISON_SETUPS_PATH}/poison_setups/tinyimagenet_from_scratch.pickle"
 
         else:
             print("Invalid Method. Exiting...")
