@@ -12,6 +12,7 @@ from models import *
 from tinyimagenet_module import TinyImageNet
 from learning_module import TINYIMAGENET_ROOT, PoisonedDataset
 
+from typing import list
 from ffcv.fields import IntField, RGBImageField
 from ffcv.fields.decoders import IntDecoder, SimpleRGBImageDecoder
 from ffcv.loader import Loader, OrderOption
@@ -225,3 +226,80 @@ def get_dataset(args, poison_tuples, poison_indices):
         transform_test,
         num_classes,
     )
+
+def test(net, testloader, device):
+    """Function to evaluate the performance of the model
+    input:
+        net:        Pytorch network object
+        testloader: FFCV dataloader object
+        device:     Device on which data is to be loaded (cpu or gpu)
+    return
+        Testing accuracy
+    """
+    net.eval()
+    natural_correct = 0
+    total = 0
+    results = {}
+
+    with torch.no_grad():
+        for batch_idx, (inputs, targets) in enumerate(testloader):
+
+            inputs, targets = inputs.to(device), targets.to(device)
+            natural_outputs = net(inputs)
+            _, natural_predicted = natural_outputs.max(1)
+            natural_correct += natural_predicted.eq(targets).sum().item()
+
+            total += targets.size(0)
+
+    natural_acc = 100.0 * natural_correct / total
+    results["Clean acc"] = natural_acc
+
+    return natural_acc
+
+
+def train(net, trainloader, optimizer, criterion, device, train_bn=True):
+    """Function to perform one epoch of training
+    input:
+        net:            Pytorch network object
+        trainloader:    FFCV dataloader object
+        optimizer:      Pytorch optimizer object
+        criterion:      Loss function
+
+    output:
+        train_loss:     Float, average loss value
+        acc:            Float, percentage of training data correctly labeled
+    """
+
+    # Set net to train and zeros stats
+    if train_bn:
+        net.train()
+    else:
+        net.eval()
+
+    net = net.to(device)
+
+    train_loss = 0
+    correct = 0
+    total = 0
+    poisons_correct = 0
+    poisons_seen = 0
+    for batch_idx, (inputs, targets, p) in enumerate(trainloader):
+        inputs, targets, p = inputs.to(device), targets.to(device), p.to(device) #might not need this
+        optimizer.zero_grad()
+        outputs = net(inputs)
+        loss = criterion(outputs, targets)
+        loss.backward()
+        optimizer.step()
+
+        train_loss += loss.item()
+        _, predicted = outputs.max(1)
+        total += targets.size(0)
+        correct += predicted.eq(targets).sum().item()
+        poisons_correct += (predicted.eq(targets) * p).sum().item()
+        poisons_seen += p.sum().item()
+
+    train_loss = train_loss / (batch_idx + 1)
+    acc = 100.0 * correct / total
+
+    return train_loss, acc
+
