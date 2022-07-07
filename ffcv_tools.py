@@ -2,6 +2,7 @@ import csv
 import datetime
 import os
 import sys
+import pip
 
 import torch.utils.data as data
 import torchvision
@@ -22,6 +23,31 @@ from ffcv.writer import DatasetWriter
 
 WRITE_PATH = './ffcv_files'
 
+data_mean_std_dict = {
+    "cifar10": ((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    "cifar100": ((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
+    "tinyimagenet_all": ((0.4802, 0.4481, 0.3975), (0.2302, 0.2265, 0.2262)),
+    "tinyimagenet_first": ((0.4802, 0.4481, 0.3975), (0.2302, 0.2265, 0.2262)),
+    "tinyimagenet_last": ((0.4802, 0.4481, 0.3975), (0.2302, 0.2265, 0.2262)),
+}
+
+model_paths = {
+    "cifar10": {
+        "whitebox": "pretrained_models/ResNet18_CIFAR100.pth",
+        "blackbox": [
+            "pretrained_models/VGG11_CIFAR100.pth",
+            "pretrained_models/MobileNetV2_CIFAR100.pth"
+        ],
+    },
+    "tinyimagenet_last": {
+        "whitebox": "pretrained_models/VGG16_Tinyimagenet_first.pth",
+        "blackbox": [
+            "pretrained_models/ResNet34_Tinyimagenet_first.pth",
+            "pretrained_models/MobileNetV2_Tinyimagenet_first.pth",
+        ],
+    },
+}
+
 def write_ffcv(name, set_type, dataset):
     """
     Write {name} (cifar10, tinyimagenet_first, etc.) dataset of type set_type (train or test) to FFCV dataset. 
@@ -29,19 +55,56 @@ def write_ffcv(name, set_type, dataset):
     writer = DatasetWriter(f"{WRITE_PATH}/{name}_{set_type}.beton", {'image': RGBImageField(), 'label': IntField()})
     writer.from_indexed_dataset(dataset))
 
+def get_pipeline(normalize, augment, dataset="CIFAR10"):
+    """Function to perform required transformation on the tensor
+    input:
+        normalize:      Bool value to determine whether to normalize data
+        augment:        Bool value to determine whether to augment data
+        dataset:        Name of the dataset
+    return
+        Pytorch tranforms.Compose with list of all transformations
+    """
+
+    dataset = dataset.lower()
+    mean, std = data_mean_std_dict[dataset]
+    if "tinyimagenet" in dataset:
+        dataset = "tinyimagenet"
+    cropsize = {"cifar10": 32, "cifar100": 32, "tinyimagenet": 64}[dataset]
+    padding = 4
+
+    pipeline: List[Operation] = [SimpleRGBDecoder()]
+
+    if normalize and augment:
+        transform_list = [
+            transforms.RandomCrop(cropsize, padding = padding), 
+            RandomHorizontalFlip(), 
+            ToTensor(), 
+            transforms.normalize(mean, std)]
+    elif augment:
+        transform_list = [
+            transforms.RandomCrop(cropsize, padding = padding),
+            RandomHorizontalFlip(),
+            ToTensor()
+        ]
+    elif normalize:
+        transform_list = [ToTensor(), transforms.Normalize(mean, std)]
+    else:
+        transform_list = [ToTensor()]
+
+    pipeline.extend(transform_list)
+
+    return pipeline
+    
 def get_dataset(args, poison_tuples, poison_indices):
     if args.dataset.lower() == "cifar10":
         transform_train = get_transform(args.normalize, args.train_augment)
         transform_test = get_transform(args.normalize, False)
-        cleanset = torchvision.datasets.CIFAR10(
-            root="./data", train=True, download=True, transform=transform_train
-        )
-        testset = torchvision.datasets.CIFAR10(
-            root="./data", train=False, download=True, transform=transform_test
-        )
-        dataset = torchvision.datasets.CIFAR10(
-            root="./data", train=True, download=True, transform=transforms.ToTensor()
-        )
+        
+        cleanset = torchvision.datasets.CIFAR10(root = './data', train = True, download = True)
+        testset = torchvision.datasets.CIFAR10(root = './data', train = False, download = True)
+        
+        dataset = torchvision.datasets.CIFAR10(root = './data', train = True, download = True, transform = transforms.ToTensor())
+        
         num_classes = 10
 
     elif args.dataset.lower() == "tinyimagenet_first":
@@ -52,20 +115,18 @@ def get_dataset(args, poison_tuples, poison_indices):
         cleanset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
-            transform=transform_train,
-            classes="firsthalf",
+            classes="firsthalf"
         )
         testset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="val",
-            transform=transform_test,
-            classes="firsthalf",
+            classes="firsthalf"
         )
         dataset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
             transform=transforms.ToTensor(),
-            classes="firsthalf",
+            classes="firsthalf"
         )
         num_classes = 100
 
@@ -77,20 +138,18 @@ def get_dataset(args, poison_tuples, poison_indices):
         cleanset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
-            transform=transform_train,
-            classes="lasthalf",
+            classes="lasthalf"
         )
         testset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="val",
-            transform=transform_test,
-            classes="lasthalf",
+            classes="lasthalf"
         )
         dataset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
             transform=transforms.ToTensor(),
-            classes="lasthalf",
+            classes="lasthalf"
         )
         num_classes = 100
 
@@ -102,20 +161,18 @@ def get_dataset(args, poison_tuples, poison_indices):
         cleanset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
-            transform=transform_train,
-            classes="all",
+            classes="all"
         )
         testset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="val",
-            transform=transform_test,
-            classes="all",
+            classes="all"
         )
         dataset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
             transform=transforms.ToTensor(),
-            classes="all",
+            classes="all"
         )
         num_classes = 200
 
@@ -124,7 +181,7 @@ def get_dataset(args, poison_tuples, poison_indices):
         sys.exit()
 
     trainset = PoisonedDataset(
-        cleanset, poison_tuples, args.trainset_size, transform_train, poison_indices
+        cleanset, poison_tuples, args.trainset_size, poison_indices
     )
 
     # Convert to FFCV
@@ -134,17 +191,14 @@ def get_dataset(args, poison_tuples, poison_indices):
     # Make loaders
     loaders = {}
     for name in ['train', 'test']:
-        BATCH_SIZE = 64 if name == 'test' else args.batch_size
-        label_pipeline: List[Operation] = [IntDecoder(), ToTensor(), ToDevice('cuda'), Squeeze()]
-        image_pipeline: List[Operation] = [SimpleRGBImageDecoder()]
+        BATCH_SIZE = args.batch_size if name == 'train' else 64
 
-        loaders[name] = Loader(f'{WRITE_PATH}/{args.dataset.lower()}_{name}.beton',
-                            batch_size=BATCH_SIZE,
-                            num_workers=8,
-                            order=OrderOption.RANDOM,
-                            drop_last=(name == 'train'),
-                            pipelines={'image': image_pipeline,
-                                       'label': label_pipeline})
+        image_pipeline: List[Operation] = [SimpleRGBImageDecoder()]
+        label_pipeline: List[Operation] = [IntDecoder(), ToTensor(), ToDevice('cuda'), Squeeze()]
+        indicator_pipeline: List[Operation] = [IntDecoder(), ToTensor(), ToDevice('cuda'), Squeeze()]
+        
+        if name == 'train':
+            image_pipline.extend([transform_train])
 
 
     return (
