@@ -19,7 +19,7 @@ import torchvision.transforms as transforms
 from models import *
 from tinyimagenet_module import TinyImageNet
 
-TINYIMAGENET_ROOT = "/Users/alanyu/Desktop/poisoning-benchmark/datasets/tiny-imagenet-200"
+TINYIMAGENET_ROOT = "/mnt/nfs/home/alanyu/benchmark_testbed/datasets/tiny-imagenet-200"
 
 data_mean_std_dict = {
     "cifar10": ((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
@@ -460,7 +460,7 @@ def load_model_from_checkpoint(model, model_path, dataset="CIFAR10"):
         Pytorch Network Object
     """
     net = get_model(model, dataset)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cuda:3" if torch.cuda.is_available() else "cpu"
     state_dict = torch.load(model_path, map_location=device)
     net.load_state_dict(state_dict["net"])
     net = net.to(device)
