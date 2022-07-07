@@ -10,7 +10,7 @@ import torchvision.transforms as transforms
 
 from models import *
 from tinyimagenet_module import TinyImageNet
-from learning_module import TINYIMAGENET_ROOT, get_transform, PoisonedDataset
+from learning_module import TINYIMAGENET_ROOT, PoisonedDataset
 
 from ffcv.fields import IntField, RGBImageField
 from ffcv.fields.decoders import IntDecoder, SimpleRGBImageDecoder
@@ -78,27 +78,32 @@ def get_pipeline(normalize, augment, dataset="CIFAR10"):
         transform_list = [
             transforms.RandomCrop(cropsize, padding = padding), 
             RandomHorizontalFlip(), 
-            ToTensor(), 
-            transforms.normalize(mean, std)]
+            ToTensor(),
+            ToDevice('cuda', non_blocking = True),
+            ToTorchImage(),
+            transforms.normalize(mean, std)
+        ]
     elif augment:
         transform_list = [
             transforms.RandomCrop(cropsize, padding = padding),
             RandomHorizontalFlip(),
-            ToTensor()
+            ToTensor(),
+            ToDevice('cuda', non_blocking = True),
+            ToTorchImage()
         ]
     elif normalize:
-        transform_list = [ToTensor(), transforms.Normalize(mean, std)]
+        transform_list = [ToTensor(), ToDevice('cuda', non_blocking = True), ToTorchImage(),transforms.Normalize(mean, std)]
     else:
-        transform_list = [ToTensor()]
+        transform_list = [ToTensor(), ToDevice('cuda', non_blocking = True), ToTorchImage(),]
 
     pipeline.extend(transform_list)
 
     return pipeline
-    
+
 def get_dataset(args, poison_tuples, poison_indices):
     if args.dataset.lower() == "cifar10":
-        transform_train = get_transform(args.normalize, args.train_augment)
-        transform_test = get_transform(args.normalize, False)
+        transform_train = get_pipeline(args.normalize, args.train_augment)
+        transform_test = get_pipeline(args.normalize, False)
         
         cleanset = torchvision.datasets.CIFAR10(root = './data', train = True, download = True)
         testset = torchvision.datasets.CIFAR10(root = './data', train = False, download = True)
@@ -108,10 +113,10 @@ def get_dataset(args, poison_tuples, poison_indices):
         num_classes = 10
 
     elif args.dataset.lower() == "tinyimagenet_first":
-        transform_train = get_transform(
+        transform_train = get_pipeline(
             args.normalize, args.train_augment, dataset=args.dataset
         )
-        transform_test = get_transform(args.normalize, False, dataset=args.dataset)
+        transform_test = get_pipeline(args.normalize, False, dataset=args.dataset)
         cleanset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
@@ -131,10 +136,10 @@ def get_dataset(args, poison_tuples, poison_indices):
         num_classes = 100
 
     elif args.dataset.lower() == "tinyimagenet_last":
-        transform_train = get_transform(
+        transform_train = get_pipeline(
             args.normalize, args.train_augment, dataset=args.dataset
         )
-        transform_test = get_transform(args.normalize, False, dataset=args.dataset)
+        transform_test = get_pipeline(args.normalize, False, dataset=args.dataset)
         cleanset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
@@ -154,10 +159,10 @@ def get_dataset(args, poison_tuples, poison_indices):
         num_classes = 100
 
     elif args.dataset.lower() == "tinyimagenet_all":
-        transform_train = get_transform(
+        transform_train = get_pipeline(
             args.normalize, args.train_augment, dataset=args.dataset
         )
-        transform_test = get_transform(args.normalize, False, dataset=args.dataset)
+        transform_test = get_pipeline(args.normalize, False, dataset=args.dataset)
         cleanset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
@@ -193,17 +198,28 @@ def get_dataset(args, poison_tuples, poison_indices):
     for name in ['train', 'test']:
         BATCH_SIZE = args.batch_size if name == 'train' else 64
 
-        image_pipeline: List[Operation] = [SimpleRGBImageDecoder()]
+        #image_pipeline: List[Operation] = [SimpleRGBImageDecoder()]
         label_pipeline: List[Operation] = [IntDecoder(), ToTensor(), ToDevice('cuda'), Squeeze()]
         indicator_pipeline: List[Operation] = [IntDecoder(), ToTensor(), ToDevice('cuda'), Squeeze()]
         
         if name == 'train':
-            image_pipline.extend([transform_train])
+            image_pipeline = transform_train
+        else:
+            image_pipeline = transform_test
+        
+        loaders[name] = Loader(f"ffcv_files/{args.dataset.lower}_{name}.beton",
+                                batch_size = BATCH_SIZE
+                                num_workers = 8,
+                                order = OrderOption.RANDOM,
+                                pipelines = {'image': image_pipeline,
+                                            'label': label_pipeline,
+                                            'indicator': indicator_pipeline})
+        
 
 
     return (
-        trainloader,
-        testloader,
+        loaders['train'],
+        loaders['test'],
         dataset,
         transform_train,
         transform_test,
