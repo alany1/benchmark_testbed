@@ -12,7 +12,7 @@ from models import *
 from tinyimagenet_module import TinyImageNet
 from learning_module import TINYIMAGENET_ROOT, PoisonedDataset
 
-from typing import list
+from typing import List
 from ffcv.fields import IntField, RGBImageField
 from ffcv.fields.decoders import IntDecoder, SimpleRGBImageDecoder
 from ffcv.loader import Loader, OrderOption
@@ -59,7 +59,7 @@ def write_ffcv(name, set_type, dataset):
     else:
         writer = DatasetWriter(f"{WRITE_PATH}/{name}_{set_type}.beton",
                                 {'image': RGBImageField(), 'label': IntField()})
-    writer.from_indexed_dataset(dataset))
+    writer.from_indexed_dataset(dataset)
 
 def get_pipeline(normalize, augment, dataset="CIFAR10", device = 'cuda'):
     """Function to perform required transformation on the tensor
@@ -78,7 +78,7 @@ def get_pipeline(normalize, augment, dataset="CIFAR10", device = 'cuda'):
     cropsize = {"cifar10": 32, "cifar100": 32, "tinyimagenet": 64}[dataset]
     padding = 4
 
-    pipeline: List[Operation] = [SimpleRGBDecoder()]
+    pipeline: List[Operation] = [SimpleRGBImageDecoder()]
 
     if normalize and augment:
         transform_list = [
@@ -87,7 +87,7 @@ def get_pipeline(normalize, augment, dataset="CIFAR10", device = 'cuda'):
             ToTensor(),
             ToDevice(device, non_blocking = True),
             ToTorchImage(),
-            transforms.normalize(mean, std)
+            transforms.Normalize(mean, std)
         ]
     elif augment:
         transform_list = [
@@ -222,7 +222,7 @@ def get_dataset(args, poison_tuples, poison_indices, device = 'cuda'):
             pipelines['indicator'] = indicator_pipeline
 
         loaders[name] = Loader(f"ffcv_files/{args.dataset.lower}_{name}.beton",
-                                batch_size = BATCH_SIZE
+                                batch_size = BATCH_SIZE,
                                 num_workers = 8,
                                 order = OrderOption.RANDOM,
                                 pipelines = pipelines)
