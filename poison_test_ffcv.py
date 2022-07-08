@@ -17,10 +17,8 @@ import torch.optim as optim
 from torchvision import transforms as transforms
 
 from learning_module import now, get_model, load_model_from_checkpoint
-from ffcv_tools import get_dataset
+from ffcv_tools import get_dataset, train, test
 from learning_module import (
-    train,
-    test,
     adjust_learning_rate,
     to_log_file,
     to_results_table,
@@ -34,7 +32,7 @@ def main(args):
     return:
         void
     """
-    print(now(), "poison_test.py main() running.")
+    print(now(), "poison_test_ffcv.py main() running.")
 
     test_log = "poison_test_log.txt"
     to_log_file(args, args.output, test_log)
@@ -53,8 +51,10 @@ def main(args):
         poison_indices = pickle.load(handle)
 
     # get the dataset and the dataloaders
+    print("Getting dataset and dataloaders...")
     trainloader, testloader, dataset, transform_train, transform_test, num_classes = \
         get_dataset(args, poison_tuples, poison_indices, device = device)
+    print("Finished getting dataset and dataloaders")
 
     # get the target image from pickled file
     with open(os.path.join(args.poisons_path, "target.pickle"), "rb") as handle:

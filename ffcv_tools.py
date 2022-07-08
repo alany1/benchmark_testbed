@@ -197,6 +197,7 @@ def get_dataset(args, poison_tuples, poison_indices, device = 'cuda'):
     )
 
     # Convert to FFCV
+    print("Writing FFCV Datasets...")
     trainset_ffcv = write_ffcv(args.dataset.lower(), 'train', trainset)
     testset_ffcv = write_ffcv(args.dataset.lower(), 'test', testset)
     
