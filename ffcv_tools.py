@@ -53,7 +53,12 @@ def write_ffcv(name, set_type, dataset):
     """
     Write {name} (cifar10, tinyimagenet_first, etc.) dataset of type set_type (train or test) to FFCV dataset. 
     """
-    writer = DatasetWriter(f"{WRITE_PATH}/{name}_{set_type}.beton", {'image': RGBImageField(), 'label': IntField()})
+    if set_type == 'train':
+        writer = DatasetWriter(f"{WRITE_PATH}/{name}_{set_type}.beton", 
+                                {'image': RGBImageField(), 'label': IntField(), 'indicator': IntField()})
+    else:
+        writer = DatasetWriter(f"{WRITE_PATH}/{name}_{set_type}.beton",
+                                {'image': RGBImageField(), 'label': IntField()})
     writer.from_indexed_dataset(dataset))
 
 def get_pipeline(normalize, augment, dataset="CIFAR10"):
@@ -186,6 +191,7 @@ def get_dataset(args, poison_tuples, poison_indices):
         print("Dataset not yet implemented. Exiting from poison_test.py.")
         sys.exit()
 
+    # Note that trainset has (img, label, indicator)
     trainset = PoisonedDataset(
         cleanset, poison_tuples, args.trainset_size, poison_indices
     )
@@ -199,22 +205,27 @@ def get_dataset(args, poison_tuples, poison_indices):
     for name in ['train', 'test']:
         BATCH_SIZE = args.batch_size if name == 'train' else 64
 
-        #image_pipeline: List[Operation] = [SimpleRGBImageDecoder()]
+        pipelines = {}
+
         label_pipeline: List[Operation] = [IntDecoder(), ToTensor(), ToDevice('cuda'), Squeeze()]
         indicator_pipeline: List[Operation] = [IntDecoder(), ToTensor(), ToDevice('cuda'), Squeeze()]
         
         if name == 'train':
-            image_pipeline = transform_train
-        else:
-            image_pipeline = transform_test
+            pipelines['image'] = transform_train
         
+        else:
+            pipelines['image'] = transform_test
+        
+        pipelines['label'] = label_pipeline
+        
+        if name == 'train':
+            pipelines['indicator'] = indicator_pipeline
+
         loaders[name] = Loader(f"ffcv_files/{args.dataset.lower}_{name}.beton",
                                 batch_size = BATCH_SIZE
                                 num_workers = 8,
                                 order = OrderOption.RANDOM,
-                                pipelines = {'image': image_pipeline,
-                                            'label': label_pipeline,
-                                            'indicator': indicator_pipeline})
+                                pipelines = pipelines)
         
 
 
@@ -244,7 +255,7 @@ def test(net, testloader, device):
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(testloader):
 
-            inputs, targets = inputs.to(device), targets.to(device)
+            #inputs, targets = inputs.to(device), targets.to(device)
             natural_outputs = net(inputs)
             _, natural_predicted = natural_outputs.max(1)
             natural_correct += natural_predicted.eq(targets).sum().item()
@@ -284,7 +295,7 @@ def train(net, trainloader, optimizer, criterion, device, train_bn=True):
     poisons_correct = 0
     poisons_seen = 0
     for batch_idx, (inputs, targets, p) in enumerate(trainloader):
-        inputs, targets, p = inputs.to(device), targets.to(device), p.to(device) #might not need this
+        #inputs, targets, p = inputs.to(device), targets.to(device), p.to(device) #might not need this
         optimizer.zero_grad()
         outputs = net(inputs)
         loss = criterion(outputs, targets)
