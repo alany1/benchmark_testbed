@@ -61,7 +61,7 @@ def write_ffcv(name, set_type, dataset):
                                 {'image': RGBImageField(), 'label': IntField()})
     writer.from_indexed_dataset(dataset))
 
-def get_pipeline(normalize, augment, dataset="CIFAR10"):
+def get_pipeline(normalize, augment, dataset="CIFAR10", device = 'cuda'):
     """Function to perform required transformation on the tensor
     input:
         normalize:      Bool value to determine whether to normalize data
@@ -85,7 +85,7 @@ def get_pipeline(normalize, augment, dataset="CIFAR10"):
             transforms.RandomCrop(cropsize, padding = padding), 
             RandomHorizontalFlip(), 
             ToTensor(),
-            ToDevice('cuda', non_blocking = True),
+            ToDevice(device, non_blocking = True),
             ToTorchImage(),
             transforms.normalize(mean, std)
         ]
@@ -94,22 +94,22 @@ def get_pipeline(normalize, augment, dataset="CIFAR10"):
             transforms.RandomCrop(cropsize, padding = padding),
             RandomHorizontalFlip(),
             ToTensor(),
-            ToDevice('cuda', non_blocking = True),
+            ToDevice(device, non_blocking = True),
             ToTorchImage()
         ]
     elif normalize:
-        transform_list = [ToTensor(), ToDevice('cuda', non_blocking = True), ToTorchImage(),transforms.Normalize(mean, std)]
+        transform_list = [ToTensor(), ToDevice(device, non_blocking = True), ToTorchImage(),transforms.Normalize(mean, std)]
     else:
-        transform_list = [ToTensor(), ToDevice('cuda', non_blocking = True), ToTorchImage(),]
+        transform_list = [ToTensor(), ToDevice(device, non_blocking = True), ToTorchImage()]
 
     pipeline.extend(transform_list)
 
     return pipeline
 
-def get_dataset(args, poison_tuples, poison_indices):
+def get_dataset(args, poison_tuples, poison_indices, device = 'cuda'):
     if args.dataset.lower() == "cifar10":
-        transform_train = get_pipeline(args.normalize, args.train_augment)
-        transform_test = get_pipeline(args.normalize, False)
+        transform_train = get_pipeline(args.normalize, args.train_augment, device = device)
+        transform_test = get_pipeline(args.normalize, False, device = device)
         
         cleanset = torchvision.datasets.CIFAR10(root = './data', train = True, download = True)
         testset = torchvision.datasets.CIFAR10(root = './data', train = False, download = True)
@@ -120,9 +120,9 @@ def get_dataset(args, poison_tuples, poison_indices):
 
     elif args.dataset.lower() == "tinyimagenet_first":
         transform_train = get_pipeline(
-            args.normalize, args.train_augment, dataset=args.dataset
+            args.normalize, args.train_augment, dataset=args.dataset, device = device
         )
-        transform_test = get_pipeline(args.normalize, False, dataset=args.dataset)
+        transform_test = get_pipeline(args.normalize, False, dataset=args.dataset, device = device)
         cleanset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
@@ -143,9 +143,9 @@ def get_dataset(args, poison_tuples, poison_indices):
 
     elif args.dataset.lower() == "tinyimagenet_last":
         transform_train = get_pipeline(
-            args.normalize, args.train_augment, dataset=args.dataset
+            args.normalize, args.train_augment, dataset=args.dataset, device = device
         )
-        transform_test = get_pipeline(args.normalize, False, dataset=args.dataset)
+        transform_test = get_pipeline(args.normalize, False, dataset=args.dataset, device = device)
         cleanset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
@@ -166,9 +166,9 @@ def get_dataset(args, poison_tuples, poison_indices):
 
     elif args.dataset.lower() == "tinyimagenet_all":
         transform_train = get_pipeline(
-            args.normalize, args.train_augment, dataset=args.dataset
+            args.normalize, args.train_augment, dataset=args.dataset, device = device
         )
-        transform_test = get_pipeline(args.normalize, False, dataset=args.dataset)
+        transform_test = get_pipeline(args.normalize, False, dataset=args.dataset, device = device)
         cleanset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
@@ -207,8 +207,8 @@ def get_dataset(args, poison_tuples, poison_indices):
 
         pipelines = {}
 
-        label_pipeline: List[Operation] = [IntDecoder(), ToTensor(), ToDevice('cuda'), Squeeze()]
-        indicator_pipeline: List[Operation] = [IntDecoder(), ToTensor(), ToDevice('cuda'), Squeeze()]
+        label_pipeline: List[Operation] = [IntDecoder(), ToTensor(), ToDevice(device), Squeeze()]
+        indicator_pipeline: List[Operation] = [IntDecoder(), ToTensor(), ToDevice(device), Squeeze()]
         
         if name == 'train':
             pipelines['image'] = transform_train
@@ -287,7 +287,7 @@ def train(net, trainloader, optimizer, criterion, device, train_bn=True):
     else:
         net.eval()
 
-    net = net.to(device)
+    net = net.to(device) #might not be necessary? #
 
     train_loss = 0
     correct = 0

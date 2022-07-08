@@ -16,7 +16,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import transforms as transforms
 
-from learning_module import now, get_model, load_model_from_checkpoint, get_dataset
+from learning_module import now, get_model, load_model_from_checkpoint
+from ffcv_tools import get_dataset
 from learning_module import (
     train,
     test,
@@ -53,7 +54,7 @@ def main(args):
 
     # get the dataset and the dataloaders
     trainloader, testloader, dataset, transform_train, transform_test, num_classes = \
-        get_dataset(args, poison_tuples, poison_indices)
+        get_dataset(args, poison_tuples, poison_indices, device = device)
 
     # get the target image from pickled file
     with open(os.path.join(args.poisons_path, "target.pickle"), "rb") as handle:
@@ -130,6 +131,7 @@ def main(args):
         )
     elif args.optimizer.upper() == "ADAM":
         optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=args.weight_decay)
+
     criterion = nn.CrossEntropyLoss()
     ####################################################
 
