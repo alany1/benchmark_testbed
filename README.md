@@ -105,19 +105,19 @@ To compute benchmark scores, craft 100 batches of poisons using the setup pickle
 
 For one trial of transfer learning poisons:
 ```eval
-python benchmark_test.py --poisons_path <path_to_poison_directory>  --dataset <dataset>
+python benchmark_test.py --poisons_path <path_to_poison_directory>  --dataset <dataset> [--ffcv]
 ```
 
 For one trial of from-scratch training poisons:
 ```eval
-python benchmark_test.py --poisons_path <path_to_poison_directory> --dataset <dataset> --from_scratch
+python benchmark_test.py --poisons_path <path_to_poison_directory> --dataset <dataset> --from_scratch [--ffcv]
 ```
 
 To benchmark 100 batches of poisons, run for transfer learning setting:
 ```eval
-bash benchmark_all.sh <path_to_directory_with_100_batches> <dataset> <output-directory>
+bash benchmark_all.sh <path_to_directory_with_100_batches> <dataset> <output-directory> [--ffcv]
 ``` 
 or, for from scratch setting:
 ```eval
-bash benchmark_all.sh <path_to_directory_with_100_batches> <dataset> from_scratch <output-directory>
+bash benchmark_all.sh <path_to_directory_with_100_batches> <dataset> from_scratch <output-directory> [--ffcv]
 ``` 
