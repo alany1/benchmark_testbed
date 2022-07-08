@@ -10,8 +10,14 @@ import argparse
 import os
 
 import poison_test
+import poison_test_ffcv
 from learning_module import now, model_paths, set_defaults
 
+def test(args):
+    if args.ffcv:
+        poison_test_ffcv.main(args)
+    else:
+        poison_test.main(args)
 
 def main(args):
     """Main function to run a benchmark test
@@ -44,7 +50,7 @@ def main(args):
         args.output = os.path.join(out_dir, "ffe-wb")
         args.model = models[0]
         args.model_path = model_paths[args.dataset]["whitebox"]
-        poison_test.main(args)
+        test(args)
 
         # black box attacks
         print("----------Starting Black Box Attacks----------")
@@ -52,11 +58,11 @@ def main(args):
 
         args.model = models[1]
         args.model_path = model_paths[args.dataset]["blackbox"][0]
-        poison_test.main(args)
+        test(args)
 
         args.model_path = model_paths[args.dataset]["blackbox"][1]
         args.model = models[2]
-        poison_test.main(args)
+        test(args)
 
     else:
         print(
@@ -72,18 +78,18 @@ def main(args):
         if args.dataset.lower() == "cifar10":
             print(f"From Scratch testing for {args.dataset}")
             args.model = "resnet18"
-            poison_test.main(args)
+            test(args)
 
             args.model = "MobileNet_V2"
-            poison_test.main(args)
+            test(args)
 
             args.model = "VGG11"
-            poison_test.main(args)
+            test(args)
 
         else:
             print(f"From Scratch testing for {args.dataset}")
             args.model = "vgg16"
-            poison_test.main(args)
+            test(args)
 
 
 if __name__ == "__main__":
@@ -100,7 +106,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output", default="output_default", type=str, help="output subdirectory"
     )
-
+    parser.add_argument(
+        '--ffcv', type=bool, required = True, help = 'Train with FFCV?')
     args = parser.parse_args()
+
     set_defaults(args)
     main(args)
