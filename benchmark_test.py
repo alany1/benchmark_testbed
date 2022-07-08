@@ -107,8 +107,11 @@ if __name__ == "__main__":
         "--output", default="output_default", type=str, help="output subdirectory"
     )
     parser.add_argument(
-        '--ffcv', type=bool, required = True, help = 'Train with FFCV?')
+        '--ffcv', type=int, required = True, help = 'Train with FFCV? 0/1 for no/yes')
+
     args = parser.parse_args()
+
+    args.ffcv = bool(args.ffcv)
 
     set_defaults(args)
     main(args)
