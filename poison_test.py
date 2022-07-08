@@ -41,7 +41,7 @@ def main(args):
     lr = args.lr
 
     # Set device
-    device = "cuda3" if torch.cuda.is_available() else "cpu"
+    device = "cuda:3" if torch.cuda.is_available() else "cpu"
 
     # load the poisons and their indices within the training set from pickled files
     with open(os.path.join(args.poisons_path, "poisons.pickle"), "rb") as handle:
