@@ -222,7 +222,8 @@ def get_dataset(args, poison_tuples, poison_indices, device = 'cuda'):
         
         else:
             pipelines['image'] = transform_test
-        
+        # DEBUG:
+        pipelines['image']: List[Operation] = [SimpleRGBImageDecoder(), ToTensor(), ToDevice('cuda:3'), ToTorchImage()]
         pipelines['label'] = label_pipeline
         
         if name == 'train':
@@ -302,7 +303,9 @@ def train(net, trainloader, optimizer, criterion, device, train_bn=True):
     total = 0
     poisons_correct = 0
     poisons_seen = 0
+    print('Starting epoch...')
     for batch_idx, (inputs, targets, p) in enumerate(trainloader):
+        print('In batch', batch_idx)
         #inputs, targets, p = inputs.to(device), targets.to(device), p.to(device) #might not need this
         optimizer.zero_grad()
         outputs = net(inputs)
