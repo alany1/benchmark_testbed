@@ -80,7 +80,7 @@ def get_pipeline(normalize, augment, dataset="CIFAR10", device = 'cuda'):
     """
 
     dataset = dataset.lower()
-    mean, std = (255*x for x in data_mean_std_dict[dataset][0]), (255 * x for x in data_mean_std_dict[dataset][1])
+    mean, std = data_mean_std_dict_255[dataset]
     if "tinyimagenet" in dataset:
         dataset = "tinyimagenet"
     cropsize = {"cifar10": 32, "cifar100": 32, "tinyimagenet": 64}[dataset]
