@@ -118,7 +118,7 @@ def set_defaults(args):
     args.weight_decay = 2e-04
     args.batch_size = 128
     args.lr_factor = 0.1
-    args.val_period = 20
+    args.val_period = 200
     args.optimizer = "SGD"
 
 
