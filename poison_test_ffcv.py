@@ -168,7 +168,7 @@ def main(args):
     # test
     natural_acc = test(net, testloader, device)
     print(
-        now(), " Training ended at epoch ", epoch, ", Natural accuracy: ", natural_acc
+        now(), " Training ended at epoch ", epoch, ", Natural accuracy: ", natural_acc, ", Training Accuracy", acc, ", Loss", loss
     )
     net.eval()
     p_acc = net(target_img.unsqueeze(0).to(device)).max(1)[1].item() == poisoned_label
