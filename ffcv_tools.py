@@ -193,7 +193,7 @@ def get_dataset(args, poison_tuples, poison_indices, device = 'cuda'):
 
     # Note that trainset has (img, label, indicator)
     trainset = PoisonedDataset(
-        cleanset, poison_tuples, args.trainset_size, poison_indices
+        cleanset, poison_tuples, args.trainset_size, None, poison_indices
     )
 
     # Convert to FFCV
