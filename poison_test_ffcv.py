@@ -52,7 +52,9 @@ def main(args):
 
     # get the dataset and the dataloaders
     print("Getting dataset and dataloaders...")
-    trainloader, testloader, dataset, transform_train, transform_test, num_classes = \
+
+    # Old transform test used for transforming the single target image
+    trainloader, testloader, dataset, transform_train, transform_test, num_classes, old_transform_test = \
         get_dataset(args, poison_tuples, poison_indices, device = device)
     print("Finished getting dataset and dataloaders")
 
@@ -89,7 +91,7 @@ def main(args):
         else:
             target_img_pil = target_img_tuple[0]
 
-        target_img = transform_test(target_img_pil)
+        target_img = old_transform_test(target_img_pil)
 
     poison_perturbation_norms = compute_perturbation_norms(
         poison_tuples, dataset, poison_indices
