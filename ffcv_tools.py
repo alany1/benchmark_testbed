@@ -18,7 +18,7 @@ from ffcv.fields.decoders import IntDecoder, SimpleRGBImageDecoder
 from ffcv.loader import Loader, OrderOption
 from ffcv.pipeline.operation import Operation
 from ffcv.transforms import RandomHorizontalFlip, Cutout, \
-    RandomTranslate, Convert, ToDevice, ToTensor, ToTorchImage
+    RandomTranslate, Convert, ToDevice, ToTensor, ToTorchImage, NormalizeImage
 from ffcv.transforms.common import Squeeze
 from ffcv.writer import DatasetWriter
 
@@ -72,7 +72,7 @@ def get_pipeline(normalize, augment, dataset="CIFAR10", device = 'cuda'):
     """
 
     dataset = dataset.lower()
-    mean, std = data_mean_std_dict[dataset]
+    mean, std = 255*data_mean_std_dict[dataset][0], 255*data_mean_std_dict[dataset][1]
     if "tinyimagenet" in dataset:
         dataset = "tinyimagenet"
     cropsize = {"cifar10": 32, "cifar100": 32, "tinyimagenet": 64}[dataset]
@@ -81,26 +81,40 @@ def get_pipeline(normalize, augment, dataset="CIFAR10", device = 'cuda'):
     pipeline: List[Operation] = [SimpleRGBImageDecoder()]
 
     if normalize and augment:
-        transform_list = [
-            transforms.RandomCrop(cropsize, padding = padding), 
-            RandomHorizontalFlip(), 
-            ToTensor(),
-            ToDevice(device, non_blocking = True),
-            ToTorchImage(),
-            transforms.Normalize(mean, std)
-        ]
+        # transform_list = [
+        #     transforms.RandomCrop(cropsize, padding = padding), 
+        #     RandomHorizontalFlip(), 
+        #     ToTensor(),
+        #     ToDevice(device, non_blocking = True),
+        #     ToTorchImage(),
+        #     transforms.Normalize(mean, std)
+        # ]
+
+        # Ignoring RandomCrop for now. 
+        transform_list = [RandomHorizontalFlip(),
+                            ToTensor(),
+                            ToDevice(device, non_blocking = True),
+                            ToTorchImage(),
+                            Convert(torch.float32),
+                            transforms.Normalize(mean, std)]
     elif augment:
-        transform_list = [
-            transforms.RandomCrop(cropsize, padding = padding),
-            RandomHorizontalFlip(),
-            ToTensor(),
-            ToDevice(device, non_blocking = True),
-            ToTorchImage()
-        ]
+        # transform_list = [
+        #     transforms.RandomCrop(cropsize, padding = padding),
+        #     RandomHorizontalFlip(),
+        #     ToTensor(),
+        #     ToDevice(device, non_blocking = True),
+        #     ToTorchImage()
+        # ]
+        transform_list = [RandomHorizontalFlip(),
+                            ToTensor(),
+                            ToDevice(device, non_blocking = True),
+                            ToTorchImage(),
+                            Convert(torch.float32)]
+
     elif normalize:
-        transform_list = [ToTensor(), ToDevice(device, non_blocking = True), ToTorchImage(),transforms.Normalize(mean, std)]
+        transform_list = [ToTensor(), ToDevice(device, non_blocking = True), ToTorchImage(), Convert(torch.float32), transforms.Normalize(mean, std)]
     else:
-        transform_list = [ToTensor(), ToDevice(device, non_blocking = True), ToTorchImage()]
+        transform_list = [ToTensor(), ToDevice(device, non_blocking = True), ToTorchImage(), Convert(torch.float32)]
 
     pipeline.extend(transform_list)
 
@@ -222,8 +236,7 @@ def get_dataset(args, poison_tuples, poison_indices, device = 'cuda'):
         
         else:
             pipelines['image'] = transform_test
-        # DEBUG:
-        pipelines['image']: List[Operation] = [SimpleRGBImageDecoder(), ToTensor(), ToDevice('cuda:3'), ToTorchImage()]
+        
         pipelines['label'] = label_pipeline
         
         if name == 'train':
