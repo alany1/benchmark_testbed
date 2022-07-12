@@ -25,19 +25,19 @@ from ffcv.writer import DatasetWriter
 WRITE_PATH = './ffcv_files'
 
 data_mean_std_dict = {
-    "cifar10": ((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    "cifar100": ((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
-    "tinyimagenet_all": ((0.4802, 0.4481, 0.3975), (0.2302, 0.2265, 0.2262)),
-    "tinyimagenet_first": ((0.4802, 0.4481, 0.3975), (0.2302, 0.2265, 0.2262)),
-    "tinyimagenet_last": ((0.4802, 0.4481, 0.3975), (0.2302, 0.2265, 0.2262)),
+    "cifar10": (np.array((0.4914, 0.4822, 0.4465)), np.array((0.2023, 0.1994, 0.2010))),
+    "cifar100": (np.array((0.5071, 0.4867, 0.4408)), np.array((0.2675, 0.2565, 0.2761))),
+    "tinyimagenet_all": (np.array((0.4802, 0.4481, 0.3975)), np.array((0.2302, 0.2265, 0.2262))),
+    "tinyimagenet_first": (np.array((0.4802, 0.4481, 0.3975)), np.array((0.2302, 0.2265, 0.2262))),
+    "tinyimagenet_last": (np.array((0.4802, 0.4481, 0.3975)), np.array((0.2302, 0.2265, 0.2262))),
 }
 
 data_mean_std_dict_255 = {
-    "cifar10": ((255*0.4914, 255*0.4822, 255*0.4465), (255*0.2023, 255*0.1994, 255*0.2010)),
-    "cifar100": ((255*0.5071, 255*0.4867, 255*0.4408), (255*0.2675, 255*0.2565, 255*0.2761)),
-    "tinyimagenet_all": ((255*0.4802, 255*0.4481, 255*0.3975), (255*0.2302, 255*0.2265, 255*0.2262)),
-    "tinyimagenet_first": ((255*0.4802, 255*0.4481, 255*0.3975), (255*0.2302, 255*0.2265, 255*0.2262)),
-    "tinyimagenet_last": ((255*0.4802, 255*0.4481, 255*0.3975), (255*0.2302, 255*0.2265, 255*0.2262)),
+    "cifar10": (255*data_mean_std_dict['cifar10'][0], 255*data_mean_std_dict['cifar10'][1]),
+    "cifar100": (255*data_mean_std_dict['cifar100'][0], 255*data_mean_std_dict['cifar100'][1]),
+    "tinyimagenet_all": (255*data_mean_std_dict['tinyimagenet_all'][0], 255*data_mean_std_dict['tinyimagenet_all'][1]),
+    "tinyimagenet_first": (255*data_mean_std_dict['cifar10'][0], 255*data_mean_std_dict['cifar10'][1]),
+    "tinyimagenet_last": (255*data_mean_std_dict['cifar10'][0], 255*data_mean_std_dict['cifar10'][1]),
 }
 
 model_paths = {
@@ -103,8 +103,7 @@ def get_pipeline(normalize, augment, dataset="CIFAR10", device = 'cuda'):
                             ToTensor(),
                             ToDevice(device, non_blocking = True),
                             ToTorchImage(),
-                            Convert(torch.float32),
-                            transforms.Normalize(mean, std)]
+                            NormalizeImage(mean, std, np.float32)]
     elif augment:
         # transform_list = [
         #     transforms.RandomCrop(cropsize, padding = padding),
