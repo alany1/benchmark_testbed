@@ -1,0 +1,14 @@
+poisons path,model,target class,base class,num poisons,max perturbation norm,epoch,loss,training_acc,natural_acc,poison_acc
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/0/,pretrained_models/VGG11_CIFAR100.pth,1,0,25,0.03529411926865578,39,0.4866100267360085,85.64967105263158,66.4863782051282,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/0/,pretrained_models/MobileNetV2_CIFAR100.pth,1,0,25,0.03529411926865578,39,0.5901229836438832,79.85197368421052,69.12059294871794,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/1/,pretrained_models/VGG11_CIFAR100.pth,7,9,25,0.03529411926865578,39,0.4888295923408709,85.64967105263158,66.35616987179488,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/1/,pretrained_models/MobileNetV2_CIFAR100.pth,7,9,25,0.03529411926865578,39,0.5928517062413065,78.86513157894737,69.2608173076923,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/10/,pretrained_models/VGG11_CIFAR100.pth,2,1,25,0.03529411926865578,39,0.4865544893239674,86.01973684210526,66.38621794871794,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/10/,pretrained_models/MobileNetV2_CIFAR100.pth,2,1,25,0.03529411926865578,39,0.5898917035052651,79.4407894736842,69.42107371794872,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/11/,pretrained_models/VGG11_CIFAR100.pth,8,3,25,0.03529411926865578,39,0.4911118024273923,85.60855263157895,66.33613782051282,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/11/,pretrained_models/MobileNetV2_CIFAR100.pth,8,3,25,0.03529411926865578,39,0.5931094069229929,79.76973684210526,69.35096153846153,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/12/,pretrained_models/VGG11_CIFAR100.pth,7,8,25,0.03529411926865578,39,0.487609852301447,85.60855263157895,66.12580128205128,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/12/,pretrained_models/MobileNetV2_CIFAR100.pth,7,8,25,0.03529411926865578,39,0.5820897096081784,79.76973684210526,69.24078525641026,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/0/,pretrained_models/VGG11_CIFAR100.pth,1,0,25,0.03529411926865578,39,0.4809148986088602,86.22532894736842,66.3661858974359,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/0/,pretrained_models/MobileNetV2_CIFAR100.pth,1,0,25,0.03529411926865578,39,0.5914645979278966,79.85197368421052,69.35096153846153,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/1/,pretrained_models/VGG11_CIFAR100.pth,7,9,25,0.03529411926865578,39,0.4808252014611897,86.14309210526316,66.3661858974359,False

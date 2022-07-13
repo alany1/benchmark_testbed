@@ -1,0 +1,3 @@
+poisons path,model,target class,base class,num poisons,max perturbation norm,epoch,loss,training_acc,natural_acc,poison_acc
+/mnt/nfs/home/alanyu/benchmark_testbed/poison_examples/cifar10-scratch/badnets-red/badnets_poisons/0/,resnet18,7,3,500,1.0,199,0.0014104879301343866,99.986,94.79,True
+/mnt/nfs/home/alanyu/benchmark_testbed/poison_examples/cifar10-scratch/badnets-red/badnets_poisons/0/,MobileNet_V2,7,3,500,1.0,199,0.011376079148821333,99.704,93.39,True

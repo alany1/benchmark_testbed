@@ -1,0 +1,8 @@
+poisons path,model,target class,base class,num poisons,max perturbation norm,epoch,loss,training_acc,natural_acc,poison_acc
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/0/,pretrained_models/ResNet18_CIFAR100.pth,1,0,25,0.03529411926865578,39,0.6184816705553156,78.74177631578948,69.8016826923077,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/1/,pretrained_models/ResNet18_CIFAR100.pth,7,9,25,0.03529411926865578,39,0.6170261847345453,78.28947368421052,69.81169871794872,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/10/,pretrained_models/ResNet18_CIFAR100.pth,2,1,25,0.03529411926865578,39,0.6146695174668965,79.02960526315789,69.75160256410257,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/11/,pretrained_models/ResNet18_CIFAR100.pth,8,3,25,0.03529411926865578,39,0.6096400618553162,78.6595394736842,70.0420673076923,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/12/,pretrained_models/ResNet18_CIFAR100.pth,7,8,25,0.03529411926865578,39,0.6161760546659169,79.11184210526316,69.87179487179488,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/0/,pretrained_models/ResNet18_CIFAR100.pth,1,0,25,0.03529411926865578,39,0.6156520702336964,78.41282894736842,69.81169871794872,False
+poison_examples/cifar10-transfer/clbd_poisons/num_poisons=25/1/,pretrained_models/ResNet18_CIFAR100.pth,7,9,25,0.03529411926865578,39,0.6171727902010867,78.00164473684211,69.74158653846153,False
