@@ -7,10 +7,11 @@ import pip
 import torch.utils.data as data
 import torchvision
 import torchvision.transforms as transforms
+from torch.cuda.amp import GradScaler, autocast
 
 from models import *
 from tinyimagenet_module import TinyImageNet
-from learning_module import TINYIMAGENET_ROOT, PoisonedDataset, get_transform
+from learning_module import TINYIMAGENET_ROOT, PoisonedDataset, get_transform, now
 
 from typing import List
 from ffcv.fields import IntField, RGBImageField
@@ -103,7 +104,8 @@ def get_pipeline(normalize, augment, dataset="CIFAR10", device = 'cuda'):
                             ToTensor(),
                             ToDevice(device, non_blocking = True),
                             ToTorchImage(),
-                            NormalizeImage(mean, std, np.float32)]
+			                Convert(torch.float16),
+                            transforms.Normalize(mean, std)]
     elif augment:
         # transform_list = [
         #     transforms.RandomCrop(cropsize, padding = padding),
@@ -116,12 +118,12 @@ def get_pipeline(normalize, augment, dataset="CIFAR10", device = 'cuda'):
                             ToTensor(),
                             ToDevice(device, non_blocking = True),
                             ToTorchImage(),
-                            Convert(torch.float32)]
+                            Convert(torch.float16)]
 
     elif normalize:
-        transform_list = [ToTensor(), ToDevice(device, non_blocking = True), ToTorchImage(), Convert(torch.float32), transforms.Normalize(mean, std)]
+        transform_list = [ToTensor(), ToDevice(device, non_blocking = True), ToTorchImage(), Convert(torch.float16), transforms.Normalize(mean, std)]
     else:
-        transform_list = [ToTensor(), ToDevice(device, non_blocking = True), ToTorchImage(), Convert(torch.float32)]
+        transform_list = [ToTensor(), ToDevice(device, non_blocking = True), ToTorchImage(), Convert(torch.float16)]
 
     pipeline.extend(transform_list)
 
@@ -252,7 +254,7 @@ def get_dataset(args, poison_tuples, poison_indices, device = 'cuda'):
         loaders[name] = Loader(f"ffcv_files/{args.dataset.lower()}_{name}.beton",
                                 batch_size = BATCH_SIZE,
                                 num_workers = 8,
-                                order = OrderOption.RANDOM,
+                                order = OrderOption.RANDOM if name == 'train' else OrderOption.SEQUENTIAL,
                                 pipelines = pipelines)
         
 
@@ -283,21 +285,21 @@ def test(net, testloader, device):
 
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(testloader):
-
+            with autocast():
             #inputs, targets = inputs.to(device), targets.to(device)
-            natural_outputs = net(inputs)
-            _, natural_predicted = natural_outputs.max(1)
-            natural_correct += natural_predicted.eq(targets).sum().item()
+                natural_outputs = net(inputs)
+                _, natural_predicted = natural_outputs.max(1)
+                natural_correct += natural_predicted.eq(targets).sum().item()
 
-            total += targets.size(0)
+                total += targets.size(0)
 
-    natural_acc = 100.0 * natural_correct / total
-    results["Clean acc"] = natural_acc
+                natural_acc = 100.0 * natural_correct / total
+                results["Clean acc"] = natural_acc
 
     return natural_acc
 
 
-def train(net, trainloader, optimizer, criterion, device, train_bn=True):
+def train(net, trainloader, optimizer, criterion, device, scaler, train_bn=True):
     """Function to perform one epoch of training
     input:
         net:            Pytorch network object
@@ -316,22 +318,23 @@ def train(net, trainloader, optimizer, criterion, device, train_bn=True):
     else:
         net.eval()
 
-    net = net.to(device) #might not be necessary? #
+    net = net.to(device)
 
     train_loss = 0
     correct = 0
     total = 0
     poisons_correct = 0
     poisons_seen = 0
-    #print('Starting epoch...')
+
     for batch_idx, (inputs, targets, p) in enumerate(trainloader):
-        #print('In batch', batch_idx)
-        #inputs, targets, p = inputs.to(device), targets.to(device), p.to(device) #might not need this
         optimizer.zero_grad()
-        outputs = net(inputs)
-        loss = criterion(outputs, targets)
-        loss.backward()
-        optimizer.step()
+        with autocast():
+            outputs = net(inputs)
+            loss = criterion(outputs, targets)
+        
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
 
         train_loss += loss.item()
         _, predicted = outputs.max(1)

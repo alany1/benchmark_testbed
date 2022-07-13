@@ -15,6 +15,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import transforms as transforms
+from torch.cuda.amp import GradScaler, autocast
 
 from learning_module import now, get_model, load_model_from_checkpoint
 from ffcv_tools import get_dataset, train, test
@@ -40,7 +41,7 @@ def main(args):
     lr = args.lr
 
     # Set device
-    device = "cuda:3" if torch.cuda.is_available() else "cpu"
+    device = "cuda:5" if torch.cuda.is_available() else "cpu"
 
     # load the poisons and their indices within the training set from pickled files
     with open(os.path.join(args.poisons_path, "poisons.pickle"), "rb") as handle:
@@ -141,13 +142,14 @@ def main(args):
     #        Poison and Train and Test
     print("==> Training network...")
     epoch = 0
+    scaler = GradScaler()
     for epoch in range(args.epochs):
         adjust_learning_rate(optimizer, epoch, args.lr_schedule, args.lr_factor)
-        #print('Starting Epoch', epoch)
+        
         loss, acc = train(
-            net, trainloader, optimizer, criterion, device, train_bn=not args.ffe
+            net, trainloader, optimizer, criterion, device, scaler, train_bn=not args.ffe
         )
-        if epoch % 10 == 0:
+        if epoch % 1 == 0:
             print(now(), 'Finished Epoch', epoch+1)
         if (epoch + 1) % args.val_period == 0:
             natural_acc = test(net, testloader, device)
