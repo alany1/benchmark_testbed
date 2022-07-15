@@ -17,9 +17,9 @@ import torch.optim as optim
 from torchvision import transforms as transforms
 from torch.cuda.amp import GradScaler, autocast
 
-from learning_module import now, get_model, load_model_from_checkpoint
+from learning_module_parallel import now, get_model, load_model_from_checkpoint
 from ffcv_tools import get_dataset, train, test
-from learning_module import (
+from learning_module_parallel import (
     adjust_learning_rate,
     to_log_file,
     to_results_table,
