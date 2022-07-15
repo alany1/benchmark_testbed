@@ -116,7 +116,7 @@ def set_defaults(args):
     args.train_augment = True
     args.normalize = True
     args.weight_decay = 2e-04
-    args.batch_size = 512 #128
+    args.batch_size = 256 #512 #128
     args.lr_factor = 0.1
     args.val_period = 200
     args.optimizer = "SGD"
