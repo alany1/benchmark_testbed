@@ -148,7 +148,7 @@ def main(args):
         adjust_learning_rate(optimizer, epoch, args.lr_schedule, args.lr_factor)
         
         loss, acc = train(
-            net, trainloader, optimizer, criterion, device, scaler, train_bn=not args.ffe
+            net, trainloader, optimizer, criterion, device, scaler, args, train_bn=not args.ffe
         )
         if epoch % 1 == 0:
             print(now(), 'Finished Epoch', epoch+1)

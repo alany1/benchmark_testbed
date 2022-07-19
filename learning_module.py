@@ -460,7 +460,7 @@ def load_model_from_checkpoint(model, model_path, dataset="CIFAR10"):
         Pytorch Network Object
     """
     net = get_model(model, dataset)
-    device = "cuda:5" if torch.cuda.is_available() else "cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     state_dict = torch.load(model_path, map_location=device)
     net.load_state_dict(state_dict["net"])
     net = net.to(device)
