@@ -299,7 +299,7 @@ def test(net, testloader, device):
     return natural_acc
 
 
-def train(net, trainloader, optimizer, criterion, device, scaler, args, train_bn=True):
+def train(net, trainloader, optimizer, criterion, device, scaler, train_bn=True, crop = None):
     """Function to perform one epoch of training
     input:
         net:            Pytorch network object
@@ -311,11 +311,7 @@ def train(net, trainloader, optimizer, criterion, device, scaler, args, train_bn
         train_loss:     Float, average loss value
         acc:            Float, percentage of training data correctly labeled
     """
-    dataset = args.dataset.lower()
-    if "tinyimagenet" in dataset:
-       dataset = "tinyimagenet"
-    cropsize = {"cifar10": 32, "cifar100": 32, "tinyimagenet": 64}[dataset]
-    padding = 4
+    
     # Set net to train and zeros stats
     if train_bn:
         net.train()
@@ -329,11 +325,9 @@ def train(net, trainloader, optimizer, criterion, device, scaler, args, train_bn
     total = 0
     poisons_correct = 0
     poisons_seen = 0
-    crop = transforms.RandomCrop(cropsize, padding = padding)
 
     for batch_idx, (inputs, targets, p) in enumerate(trainloader):
-        if args.train_augment:
-            #print('Cropping...')
+        if crop:
             inputs = crop(inputs)
  
         optimizer.zero_grad()

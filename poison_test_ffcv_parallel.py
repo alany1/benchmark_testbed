@@ -144,11 +144,18 @@ def main(args):
     print("==> Training network...")
     epoch = 0
     scaler = GradScaler()
+    dataset = args.dataset.lower()
+    if "tinyimagenet" in dataset:
+       dataset = "tinyimagenet"
+    cropsize = {"cifar10": 32, "cifar100": 32, "tinyimagenet": 64}[dataset]
+    padding = 4
+    crop = transforms.RandomCrop(cropsize, padding = padding) if args.train_augment else None
+
     for epoch in range(args.epochs):
         adjust_learning_rate(optimizer, epoch, args.lr_schedule, args.lr_factor)
         
         loss, acc = train(
-            net, trainloader, optimizer, criterion, device, scaler, args, train_bn=not args.ffe
+            net, trainloader, optimizer, criterion, device, scaler, train_bn=not args.ffe, crop = crop
         )
         if epoch % 1 == 0:
             print(now(), 'Finished Epoch', epoch+1)
