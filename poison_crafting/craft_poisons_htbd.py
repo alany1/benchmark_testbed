@@ -304,7 +304,7 @@ if __name__ == "__main__":
     parser.add_argument("--no-normalize", dest="normalize", action="store_false")
     parser.set_defaults(normalize=True)
     parser.add_argument(
-        "--epsilon", type=int, default=8 / 255, help="poison perturbation allowance"
+        "--epsilon", type=float, default=8 / 255, help="poison perturbation allowance"
     )
     parser.add_argument(
         "--model", type=str, default=["resnet18"], nargs="+", help="model name"
