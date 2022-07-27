@@ -143,8 +143,8 @@ def main(args):
         loss, acc = train(
             net, trainloader, optimizer, criterion, device, train_bn=not args.ffe
         )
-        if epoch % 10 == 0:
-            print('Finished Epoch', epoch+1)
+        if epoch % 1 == 0:
+            print(now(), 'Finished Epoch', epoch+1)
         if (epoch + 1) % args.val_period == 0:
             natural_acc = test(net, testloader, device)
             net.eval()

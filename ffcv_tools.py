@@ -129,7 +129,7 @@ def get_pipeline(normalize, augment, dataset="CIFAR10", device = 'cuda'):
 
     return pipeline
 
-def get_dataset(args, poison_tuples, poison_indices, device = 'cuda'):
+def get_dataset(args, poison_tuples, poison_indices, device = 'cuda', simple = False):
     if args.dataset.lower() == "cifar10":
         transform_train = get_pipeline(args.normalize, args.train_augment, device = device)
         transform_test = get_pipeline(args.normalize, False, device = device)
@@ -224,6 +224,11 @@ def get_dataset(args, poison_tuples, poison_indices, device = 'cuda'):
         cleanset, poison_tuples, args.trainset_size, None, poison_indices
     )
 
+    if simple:
+        transform_train: List[Operation] = [SimpleRGBImageDecoder()]#, ToDevice(device, non_blocking=True)]
+        transform_test: List[Operation] = [SimpleRGBImageDecoder()]#, ToDevice(device, non_blocking=True)]
+
+
     # Convert to FFCV
     print("Writing FFCV Datasets...")
     trainset_ffcv = write_ffcv(args.dataset.lower(), 'train', trainset)
@@ -269,7 +274,7 @@ def get_dataset(args, poison_tuples, poison_indices, device = 'cuda'):
         old_transform_test
     )
 
-def test(net, testloader, device):
+def test(net, testloader, device, extra_transforms = None):
     """Function to evaluate the performance of the model
     input:
         net:        Pytorch network object
@@ -285,8 +290,10 @@ def test(net, testloader, device):
 
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(testloader):
+            if extra_transforms:
+                inputs = torch.stack([extra_transforms(x) for x in inputs])
+            inputs, targets = inputs.to(device), targets.to(device)
             with autocast():
-            #inputs, targets = inputs.to(device), targets.to(device)
                 natural_outputs = net(inputs)
                 _, natural_predicted = natural_outputs.max(1)
                 natural_correct += natural_predicted.eq(targets).sum().item()
@@ -299,7 +306,7 @@ def test(net, testloader, device):
     return natural_acc
 
 
-def train(net, trainloader, optimizer, criterion, device, scaler, train_bn=True, crop = None):
+def train(net, trainloader, optimizer, criterion, device, scaler, train_bn=True, extra_transforms = None):
     """Function to perform one epoch of training
     input:
         net:            Pytorch network object
@@ -327,9 +334,12 @@ def train(net, trainloader, optimizer, criterion, device, scaler, train_bn=True,
     poisons_seen = 0
 
     for batch_idx, (inputs, targets, p) in enumerate(trainloader):
-        if crop:
-            inputs = crop(inputs)
- 
+        if extra_transforms:
+            #print('here', inputs.shape)
+            inputs = torch.stack([extra_transforms(x) for x in inputs])
+        #print('out')
+        inputs, targets, p = inputs.to(device), targets.to(device), p.to(device)
+
         optimizer.zero_grad()
         with autocast():
             outputs = net(inputs)
