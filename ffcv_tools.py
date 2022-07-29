@@ -58,15 +58,15 @@ model_paths = {
     },
 }
 
-def write_ffcv(name, set_type, dataset):
+def write_ffcv(name, set_type, dataset, args):
     """
     Write {name} (cifar10, tinyimagenet_first, etc.) dataset of type set_type (train or test) to FFCV dataset. 
     """
     if set_type == 'train':
-        writer = DatasetWriter(f"{WRITE_PATH}/{name}_{set_type}.beton", 
+        writer = DatasetWriter(f"{WRITE_PATH}/{name}_{set_type}_{args.poisons_path.split('/')[1]}.beton", 
                                 {'image': RGBImageField(), 'label': IntField(), 'indicator': IntField()})
     else:
-        writer = DatasetWriter(f"{WRITE_PATH}/{name}_{set_type}.beton",
+        writer = DatasetWriter(f"{WRITE_PATH}/{name}_{set_type}_{args.poisons_path.split('/')[1]}.beton",
                                 {'image': RGBImageField(), 'label': IntField()})
     writer.from_indexed_dataset(dataset)
 
@@ -231,9 +231,9 @@ def get_dataset(args, poison_tuples, poison_indices, device = 'cuda', simple = F
 
     # Convert to FFCV
     print("Writing FFCV Datasets...")
-    trainset_ffcv = write_ffcv(args.dataset.lower(), 'train', trainset)
+    trainset_ffcv = write_ffcv(args.dataset.lower(), 'train', trainset, args)
     print("Finished writing trainset...")	    
-    testset_ffcv = write_ffcv(args.dataset.lower(), 'test', testset)
+    testset_ffcv = write_ffcv(args.dataset.lower(), 'test', testset, args)
     print("Finished writing testset.")
     # Make loaders
     loaders = {}
@@ -256,7 +256,7 @@ def get_dataset(args, poison_tuples, poison_indices, device = 'cuda', simple = F
         if name == 'train':
             pipelines['indicator'] = indicator_pipeline
 
-        loaders[name] = Loader(f"ffcv_files/{args.dataset.lower()}_{name}.beton",
+        loaders[name] = Loader(f"{WRITE_PATH}/{args.dataset.lower()}_{name}_{args.poisons_path.split('/')[1]}.beton",
                                 batch_size = BATCH_SIZE,
                                 num_workers = 8,
                                 order = OrderOption.RANDOM if name == 'train' else OrderOption.SEQUENTIAL,

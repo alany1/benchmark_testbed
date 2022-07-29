@@ -53,9 +53,7 @@ class PerturbPGD(nn.Module):
         """
         x = inputs.detach()
         x = x + torch.zeros_like(x).uniform_(-self.epsilon, self.epsilon)
-        print(targets)
         target_class = torch.tensor([target_class for _ in range(len(targets))]).to(device)
-        print(target_class)
         for i in range(self.num_steps):
             x.requires_grad_()
             with torch.enable_grad():
