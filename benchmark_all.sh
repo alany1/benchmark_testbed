@@ -9,13 +9,13 @@
 #
 ############################################################
 
-if (( $# == 5 )); then
+if (( $# == 6 )); then
   for filepath in $1*/; do
-    python benchmark_test.py --poisons_path ${filepath} --dataset $2  --$3 --output $4 --ffcv $5
+    python benchmark_test.py --poisons_path ${filepath} --dataset $2  --$3 --output $4 --ffcv $5 --cuda $6
   done
-elif (( $# == 4 )); then
+elif (( $# == 5 )); then
   for filepath in $1*/; do
-    python benchmark_test.py --poisons_path ${filepath} --dataset $2 --output $3 --ffcv $4
+    python benchmark_test.py --poisons_path ${filepath} --dataset $2 --output $3 --ffcv $4 --cuda $5
   done
 else
   echo "Illegal number of arguments."

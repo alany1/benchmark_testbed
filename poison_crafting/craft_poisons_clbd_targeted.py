@@ -53,7 +53,9 @@ class PerturbPGD(nn.Module):
         """
         x = inputs.detach()
         x = x + torch.zeros_like(x).uniform_(-self.epsilon, self.epsilon)
+        print(targets)
         target_class = torch.tensor([target_class for _ in range(len(targets))]).to(device)
+        print(target_class)
         for i in range(self.num_steps):
             x.requires_grad_()
             with torch.enable_grad():
@@ -74,7 +76,7 @@ def main(args):
     reutrn:
         void
     """
-    print(now(), "craft_poisons_clbd.py main() running...")
+    print(now(), "craft_poisons_clbd_targeted.py main() running...")
     mean, std = data_mean_std_dict[args.dataset.lower()]
     mean = list(mean)
     std = list(std)
@@ -146,124 +148,125 @@ def main(args):
         sys.exit()
     ###################################################
 
-    with open(args.poison_setups, "rb") as handle:
-        setup_dicts = pickle.load(handle)
-    setup = setup_dicts[args.setup_idx]
-
-    target_img_idx = (
-        setup["target index"] if args.target_img_idx is None else args.target_img_idx
-    )
-    base_indices = (
-        setup["base indices"] if args.base_indices is None else args.base_indices
-    )
-
-    # get single target
-    target_img, target_label = testset[target_img_idx]
-
-    # get multiple bases
-    base_imgs = torch.stack([trainset[i][0] for i in base_indices]).to(device)
-    base_labels = torch.LongTensor([trainset[i][1] for i in base_indices]).to(device)
-
-    # get attacker
-    config = {
-        "epsilon": args.epsilon,
-        "step_size": args.step_size,
-        "num_steps": args.num_steps,
-    }
-    attacker = PerturbPGD(model, config)
-
-    # get patch
-    trans_trigger = transforms.Compose(
-        [transforms.Resize((args.patch_size, args.patch_size)), transforms.ToTensor()]
-    )
-    trigger = Image.open("./poison_crafting/triggers/clbd.png").convert("RGB")
-    trigger = trans_trigger(trigger).unsqueeze(0).to(device)
-
-    # craft poisons
-    num_batches = int(np.ceil(base_imgs.shape[0] / 1000))
-    batches = [
-        (base_imgs[1000 * i : 1000 * (i + 1)], base_labels[1000 * i : 1000 * (i + 1)])
-        for i in range(num_batches)
-    ]
-
-    # attack all the bases
-    adv_batches = []
-    for batch_img, batch_labels in batches:
-        adv_batches.append(attacker(batch_img, batch_labels, target_label))
-    adv_bases = torch.cat(adv_batches)
-
-    # Starting coordinates of the patch
-    start_x = args.image_size - args.patch_size
-    start_y = args.image_size - args.patch_size
-
-    # Mask
-    mask = torch.ones_like(adv_bases)
-
-    # uncomment for patching all corners
-    mask[
-        :, start_y : start_y + args.patch_size, start_x : start_x + args.patch_size
-    ] = 0
-    # mask[:, 0 : args.patch_size, start_x : start_x + args.patch_size] = 0
-    # mask[:, start_y : start_y + args.patch_size, 0 : args.patch_size] = 0
-    # mask[:, 0 : args.patch_size, 0 : args.patch_size] = 0
-
-    pert = (adv_bases - base_imgs) * mask
-    adv_bases_masked = base_imgs + pert
-
-    # Attching patch to the masks
-    for i in range(len(base_imgs)):
-        # uncomment for patching all corners
-        adv_bases_masked[
-            i,
-            :,
-            start_y : start_y + args.patch_size,
-            start_x : start_x + args.patch_size,
-        ] = trigger
-        # adv_bases_masked[
-        #     i, :, 0 : args.patch_size, start_x : start_x + args.patch_size
-        # ] = trigger
-        # adv_bases_masked[
-        #     i, :, start_y : start_y + args.patch_size, 0 : args.patch_size
-        # ] = torch.flip(trigger, (-1,))
-        # adv_bases_masked[i, :, 0 : args.patch_size, 0 : args.patch_size] = torch.flip(
-        #     trigger, (-1,)
-        # )
-
-    final_pert = torch.clamp(adv_bases_masked - base_imgs, -args.epsilon, args.epsilon)
-    poisons = base_imgs + final_pert
-
-    poisons = poisons.clamp(0, 1).cpu()
-    poisoned_tuples = [
-        (transforms.ToPILImage()(poisons[i]), base_labels[i].item())
-        for i in range(poisons.shape[0])
-    ]
-
-    target_tuple = (
-        transforms.ToPILImage()(target_img),
-        int(target_label),
-        trigger.squeeze(0).cpu(),
-        [start_x, start_y],
-    )
-
-    ####################################################
-    #        Save Poisons
-    print(now(), "Saving poisons...")
-    if not os.path.isdir(args.poisons_path):
-        os.makedirs(args.poisons_path)
-    with open(os.path.join(args.poisons_path, "poisons.pickle"), "wb") as handle:
-        pickle.dump(poisoned_tuples, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    with open(os.path.join(args.poisons_path, "target.pickle"), "wb") as handle:
-        pickle.dump(
-            target_tuple,
-            handle,
-            protocol=pickle.HIGHEST_PROTOCOL,
+    for pb in range(100):
+        with open(args.poison_setups, "rb") as handle:
+            setup_dicts = pickle.load(handle)
+        setup = setup_dicts[pb]
+        pth = args.poisons_path + str(pb)
+        target_img_idx = (
+            setup["target index"] if args.target_img_idx is None else args.target_img_idx
         )
-    with open(os.path.join(args.poisons_path, "base_indices.pickle"), "wb") as handle:
-        pickle.dump(base_indices, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    ####################################################
+        base_indices = (
+            setup["base indices"] if args.base_indices is None else args.base_indices
+        )
 
-    print(now(), "craft_poisons_clbd.py done.")
-    return
+        # get single target
+        target_img, target_label = testset[target_img_idx]
+
+        # get multiple bases
+        base_imgs = torch.stack([trainset[i][0] for i in base_indices]).to(device)
+        base_labels = torch.LongTensor([trainset[i][1] for i in base_indices]).to(device)
+
+        # get attacker
+        config = {
+            "epsilon": args.epsilon,
+            "step_size": args.step_size,
+            "num_steps": args.num_steps,
+        }
+        attacker = PerturbPGD(model, config)
+
+        # get patch
+        trans_trigger = transforms.Compose(
+            [transforms.Resize((args.patch_size, args.patch_size)), transforms.ToTensor()]
+        )
+        trigger = Image.open("./poison_crafting/triggers/clbd.png").convert("RGB")
+        trigger = trans_trigger(trigger).unsqueeze(0).to(device)
+
+        # craft poisons
+        num_batches = int(np.ceil(base_imgs.shape[0] / 1000))
+        batches = [
+            (base_imgs[1000 * i : 1000 * (i + 1)], base_labels[1000 * i : 1000 * (i + 1)])
+            for i in range(num_batches)
+        ]
+
+        # attack all the bases
+        adv_batches = []
+        for batch_img, batch_labels in batches:
+            adv_batches.append(attacker(batch_img, batch_labels, target_label))
+        adv_bases = torch.cat(adv_batches)
+
+        # Starting coordinates of the patch
+        start_x = args.image_size - args.patch_size
+        start_y = args.image_size - args.patch_size
+
+        # Mask
+        mask = torch.ones_like(adv_bases)
+
+        # uncomment for patching all corners
+        mask[
+            :, start_y : start_y + args.patch_size, start_x : start_x + args.patch_size
+        ] = 0
+        # mask[:, 0 : args.patch_size, start_x : start_x + args.patch_size] = 0
+        # mask[:, start_y : start_y + args.patch_size, 0 : args.patch_size] = 0
+        # mask[:, 0 : args.patch_size, 0 : args.patch_size] = 0
+
+        pert = (adv_bases - base_imgs) * mask
+        adv_bases_masked = base_imgs + pert
+
+        # Attching patch to the masks
+        for i in range(len(base_imgs)):
+            # uncomment for patching all corners
+            adv_bases_masked[
+                i,
+                :,
+                start_y : start_y + args.patch_size,
+                start_x : start_x + args.patch_size,
+            ] = trigger
+            # adv_bases_masked[
+            #     i, :, 0 : args.patch_size, start_x : start_x + args.patch_size
+            # ] = trigger
+            # adv_bases_masked[
+            #     i, :, start_y : start_y + args.patch_size, 0 : args.patch_size
+            # ] = torch.flip(trigger, (-1,))
+            # adv_bases_masked[i, :, 0 : args.patch_size, 0 : args.patch_size] = torch.flip(
+            #     trigger, (-1,)
+            # )
+
+        final_pert = torch.clamp(adv_bases_masked - base_imgs, -args.epsilon, args.epsilon)
+        poisons = base_imgs + final_pert
+
+        poisons = poisons.clamp(0, 1).cpu()
+        poisoned_tuples = [
+            (transforms.ToPILImage()(poisons[i]), base_labels[i].item())
+            for i in range(poisons.shape[0])
+        ]
+
+        target_tuple = (
+            transforms.ToPILImage()(target_img),
+            int(target_label),
+            trigger.squeeze(0).cpu(),
+            [start_x, start_y],
+        )
+
+        ####################################################
+        #        Save Poisons
+        print(now(), "Saving poisons...")
+        if not os.path.isdir(pth):
+            os.makedirs(pth)
+        with open(os.path.join(pth, "poisons.pickle"), "wb") as handle:
+            pickle.dump(poisoned_tuples, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open(os.path.join(pth, "target.pickle"), "wb") as handle:
+            pickle.dump(
+                target_tuple,
+                handle,
+                protocol=pickle.HIGHEST_PROTOCOL,
+            )
+        with open(os.path.join(pth, "base_indices.pickle"), "wb") as handle:
+            pickle.dump(base_indices, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        ####################################################
+
+        print(now(), "Finished crafting batch", pb)
+        
 
 
 if __name__ == "__main__":

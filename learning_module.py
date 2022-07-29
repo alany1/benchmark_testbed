@@ -61,7 +61,7 @@ def set_defaults(args):
             "lr_schedule": [30],
             "epochs": 40,
             "image_size": 32,
-            "patch_size": 5,
+            "patch_size": 5,#8,#5,
             "pretrain_dataset": "cifar100",
         },
         "tinyimagenet_last": {
@@ -113,7 +113,7 @@ def set_defaults(args):
     args.epochs = sub_dict["epochs"]
     args.image_size = sub_dict["image_size"]
     args.patch_size = sub_dict["patch_size"]
-    args.train_augment = True
+    args.train_augment = False #True
     args.normalize = True
     args.weight_decay = 2e-04
     args.batch_size = 128

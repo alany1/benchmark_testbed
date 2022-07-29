@@ -109,6 +109,9 @@ if __name__ == "__main__":
     parser.add_argument(
         '--ffcv', type=int, required = True, help = 'Train with FFCV? 0/1 for no/yes')
 
+    parser.add_argument(
+        '--cuda', type=int, required = False, default = None, help = 'Which device # to run on?'
+    )
     args = parser.parse_args()
 
     args.ffcv = bool(args.ffcv)
