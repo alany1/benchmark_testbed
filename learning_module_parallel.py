@@ -81,8 +81,8 @@ def set_defaults(args):
             "num_poisons": 500,
             "trainset_size": 50000,
             "lr": 0.1,
-            "lr_schedule": [100, 150],
-            "epochs": 200,
+            "lr_schedule": [40,60], #[100, 150],
+            "epochs": 100, #200,
             "image_size": 32,
             "patch_size": 5,
         },
@@ -94,7 +94,7 @@ def set_defaults(args):
             "epochs": 200,
             "image_size": 64,
             "patch_size": 8,
-        },
+        }
     }
 
     if not args.from_scratch:

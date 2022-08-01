@@ -80,11 +80,11 @@ def main(args):
             args.model = "resnet18"
             test(args)
 
-            args.model = "MobileNet_V2"
-            test(args)
+            # args.model = "MobileNet_V2"
+            # test(args)
 
-            args.model = "VGG11"
-            test(args)
+            # args.model = "VGG11"
+            # test(args)
 
         else:
             print(f"From Scratch testing for {args.dataset}")
