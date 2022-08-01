@@ -154,7 +154,6 @@ def main(args):
     extra_transform_test = get_transform(args.normalize, False, args.dataset)
     for epoch in range(args.epochs):
         adjust_learning_rate(optimizer, epoch, args.lr_schedule, args.lr_factor)
-        
         loss, acc = train(
             net, trainloader, optimizer, criterion, device, scaler, train_bn=not args.ffe, extra_transforms = extra_transform_train
         )
@@ -178,17 +177,20 @@ def main(args):
 
     # test
     natural_acc = test(net, testloader, device, extra_transform_test)
-    print(
+    print(  
         now(), " Training ended at epoch ", epoch, ", Natural accuracy: ", natural_acc, ", Training Accuracy", acc, ", Loss", loss
     )
     net.eval()
     p_acc = net(target_img.unsqueeze(0).to(device)).max(1)[1].item() == poisoned_label
+    p_loss = criterion(net(target_img.unsqueeze(0).to(device)), torch.tensor([poisoned_label]).to(device)).item()
 
+    #print(target_img.shape, target_img.unsqueeze(0).shape, torch.Tensor([poisoned_label.shape]))
     print(
         now(), " poison success: ",
         p_acc, " poisoned_label: ",
         poisoned_label, " prediction: ",
         net(target_img.unsqueeze(0).to(device)).max(1)[1].item(),
+        "poison loss:", p_loss
     )
 
     # Dictionary to write contest the csv file
@@ -205,6 +207,7 @@ def main(args):
             ("training_acc", acc),
             ("natural_acc", natural_acc),
             ("poison_acc", p_acc),
+            ("poison_loss", p_loss)
         ]
     )
     to_results_table(stats, args.output)

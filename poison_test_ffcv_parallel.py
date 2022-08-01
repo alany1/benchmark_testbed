@@ -24,6 +24,7 @@ from learning_module_parallel import (
     to_log_file,
     to_results_table,
     compute_perturbation_norms,
+    get_transform
 )
 
 def main(args):
@@ -56,7 +57,7 @@ def main(args):
 
     # Old transform test used for transforming the single target image
     trainloader, testloader, dataset, transform_train, transform_test, num_classes, old_transform_test = \
-        get_dataset(args, poison_tuples, poison_indices, device = device)
+        get_dataset(args, poison_tuples, poison_indices, device = device, simple = True)
     print("Finished getting dataset and dataloaders")
 
     # get the target image from pickled file
@@ -149,13 +150,13 @@ def main(args):
        dataset = "tinyimagenet"
     cropsize = {"cifar10": 32, "cifar100": 32, "tinyimagenet": 64}[dataset]
     padding = 4
-    crop = transforms.RandomCrop(cropsize, padding = padding) if args.train_augment else None
-
+    #crop = transforms.RandomCrop(cropsize, padding = padding) if args.train_augment else None
+    extra_transform_train = get_transform(args.normalize, args.train_augment, args.dataset)
+    extra_transform_test = get_transform(args.normalize, False, args.dataset)
     for epoch in range(args.epochs):
         adjust_learning_rate(optimizer, epoch, args.lr_schedule, args.lr_factor)
-        
         loss, acc = train(
-            net, trainloader, optimizer, criterion, device, scaler, train_bn=not args.ffe, crop = crop
+            net, trainloader, optimizer, criterion, device, scaler, train_bn=not args.ffe, extra_transforms = extra_transform_train
         )
         if epoch % 1 == 0:
             print(now(), 'Finished Epoch', epoch+1)
@@ -176,18 +177,20 @@ def main(args):
             )
 
     # test
-    natural_acc = test(net, testloader, device)
+    natural_acc = test(net, testloader, device, extra_transform_test)
     print(
         now(), " Training ended at epoch ", epoch, ", Natural accuracy: ", natural_acc, ", Training Accuracy", acc, ", Loss", loss
     )
     net.eval()
     p_acc = net(target_img.unsqueeze(0).to(device)).max(1)[1].item() == poisoned_label
+    p_loss = criterion(net(target_img.unsqueeze(0).to(device)), torch.tensor([poisoned_label]).to(device)).item()
 
     print(
         now(), " poison success: ",
         p_acc, " poisoned_label: ",
         poisoned_label, " prediction: ",
         net(target_img.unsqueeze(0).to(device)).max(1)[1].item(),
+        "poison loss:", p_loss
     )
 
     # Dictionary to write contest the csv file

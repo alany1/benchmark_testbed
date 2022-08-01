@@ -113,10 +113,10 @@ def set_defaults(args):
     args.epochs = sub_dict["epochs"]
     args.image_size = sub_dict["image_size"]
     args.patch_size = sub_dict["patch_size"]
-    args.train_augment = True
+    args.train_augment = False
     args.normalize = True
     args.weight_decay = 2e-04
-    args.batch_size = 128 #256 #512 #128
+    args.batch_size = 1024 #256 #512 #128
     args.lr_factor = 0.1
     args.val_period = 200
     args.optimizer = "SGD"

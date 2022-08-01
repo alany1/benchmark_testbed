@@ -252,7 +252,7 @@ def get_dataset(args, poison_tuples, poison_indices, device = 'cuda', simple = F
             pipelines['image'] = transform_test
         
         pipelines['label'] = label_pipeline
-        
+
         if name == 'train':
             pipelines['indicator'] = indicator_pipeline
 
@@ -335,7 +335,10 @@ def train(net, trainloader, optimizer, criterion, device, scaler, train_bn=True,
 
     for batch_idx, (inputs, targets, p) in enumerate(trainloader):
         if extra_transforms:
-            #print('here', inputs.shape)
+            #if batch_idx == 0:
+            #   print(type(inputs))
+            #   print('here', inputs.shape, targets)
+            #   print(extra_transforms)
             inputs = torch.stack([extra_transforms(x) for x in inputs])
         #print('out')
         inputs, targets, p = inputs.to(device), targets.to(device), p.to(device)
