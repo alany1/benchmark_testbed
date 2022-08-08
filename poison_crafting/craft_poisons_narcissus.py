@@ -29,7 +29,7 @@ from learning_module import (
 )
 from tinyimagenet_module import TinyImageNet
 
-def generate_trigger(trainset, label, surrogate, epsilon, N = 100, num_iters = 1000, lr = 0.01):
+def generate_trigger(trainset, label, surrogate, epsilon, N = 100, num_iters = 40, lr = 0.01):
     """
     Generate the NARCISSUS trigger using randomly selected images from the trainset of class label.
 
@@ -39,23 +39,38 @@ def generate_trigger(trainset, label, surrogate, epsilon, N = 100, num_iters = 1
     return:
         PIL image of NARCISSUS-crafted trigger
     """
+    epsilon = torch.tensor(epsilon)
     images = torch.stack([x for x,y in trainset if y == label])
     idxs = torch.randperm(len(images))[:N]
 
     samples = images[idxs]
-    delta = torch.zeros_like(samples).uniform(-epsilon, epsilon)
-
+    delta = torch.zeros_like(samples[0]).uniform_(-epsilon, epsilon)
+    label = torch.tensor([label for _ in range(N)])
     for step in range(num_iters):
-        cumulative_loss = 0
-        for sample in samples:
+        delta.requires_grad_()
+        with torch.enable_grad():
+            if step % 1 == 0:
+                print(step)
             loss = nn.functional.cross_entropy(surrogate(samples + delta), label, reduction = 'sum')
-            cumulative_loss += loss
-        cumulative_loss /= N
-        grad = torch.autograd.grad(cumulative_loss, [delta])[0]
+            loss /= N
+        grad = torch.autograd.grad(loss, [delta])[0]
         delta = delta.detach() - lr * torch.sign(grad.detach())
         delta = torch.min(torch.max(-epsilon, delta), epsilon)
+        delta = torch.clamp(delta, 0.0, 1.0)
+    
+    convert = transforms.ToPILImage()
+    delta = convert(delta)
     
     return delta
+
+def save_triggers(trainset, labels, surrogate, epsilon, N == 100, num_iters = 40, lr = 0.01, path = None):
+    """
+    Calls generate_trigger to create triggers for all possible labels. (One trigger per target class).
+    """
+    for label in labels:
+        trigger = generate_trigger(trainset, label, surrogate, epsilon, N, num_iters, lr)
+        trigger.save(f'narcissus_{label}_trigger')
+    
 
 class AttackPGD(nn.Module):
     """Class for the PGD adversarial attack"""
