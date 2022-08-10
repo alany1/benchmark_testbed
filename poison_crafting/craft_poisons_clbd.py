@@ -50,8 +50,10 @@ class AttackPGD(nn.Module):
         reutrn:
             adversarially perturbed inputs
         """
+
         x = inputs.detach()
         x = x + torch.zeros_like(x).uniform_(-self.epsilon, self.epsilon)
+        print(torch.max(x), torch.max(inputs))
         for i in range(self.num_steps):
             x.requires_grad_()
             with torch.enable_grad():

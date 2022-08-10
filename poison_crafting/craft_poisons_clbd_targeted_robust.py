@@ -54,6 +54,7 @@ class PerturbPGD(nn.Module):
 
         x = inputs.detach()
         x = x + torch.zeros_like(x).uniform_(-self.epsilon, self.epsilon)
+        #print(torch.max(x), torch.max(inputs))
         target_class = torch.tensor([target_class for _ in range(len(targets))]).to(device)
         for i in range(self.num_steps):
             x.requires_grad_()
@@ -65,9 +66,6 @@ class PerturbPGD(nn.Module):
                             self.basic_net(x), target_class, reduction="sum"
                         )
                     else:
-                        #print('transforming', x.shape)
-                        #transform(x)
-                        #print('outside')
                         loss = nn.functional.cross_entropy(
                             self.basic_net(transform(x)), target_class, reduction="sum"
                         )
@@ -77,7 +75,9 @@ class PerturbPGD(nn.Module):
             x = x.detach() - self.step_size * torch.sign(grad.detach())
             x = torch.min(torch.max(x, inputs - self.epsilon), inputs + self.epsilon)
             x = torch.clamp(x, 0.0, 1.0)
-        print(now(), 'Finished sub-batch.')
+        
+        print(now(), 'Finished minibatch with max perturb:', torch.max(inputs-x))  
+        #print(now(), 'Finished sub-batch.')
         return x
 
 
@@ -106,7 +106,7 @@ def main(args):
     ####################################################
     #               Dataset
     if args.dataset.lower() == "cifar10":
-        transform_test = get_transform(normalize = True, augment = False)
+        transform_test = get_transform(normalize = False, augment = False)
         testset = torchvision.datasets.CIFAR10(
             root="./data", train=False, download=True, transform=transform_test
         )
@@ -114,7 +114,7 @@ def main(args):
             root="./data", train=True, download=True, transform=transform_test
         )
     elif args.dataset.lower() == "tinyimagenet_first":
-        transform_test = get_transform(normalize = True, augment = False, dataset=args.dataset)
+        transform_test = get_transform(normalize = False, augment = False, dataset=args.dataset)
         trainset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
@@ -128,7 +128,7 @@ def main(args):
             classes="firsthalf",
         )
     elif args.dataset.lower() == "tinyimagenet_last":
-        transform_test = get_transform(normalize = True, augment = False, dataset=args.dataset)
+        transform_test = get_transform(normalize = False, augment = False, dataset=args.dataset)
         trainset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
@@ -142,7 +142,7 @@ def main(args):
             classes="lasthalf",
         )
     elif args.dataset.lower() == "tinyimagenet_all":
-        transform_test = get_transform(normalize = True, augment = False, dataset=args.dataset)
+        transform_test = get_transform(normalize = False, augment = False, dataset=args.dataset)
         trainset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
@@ -208,11 +208,14 @@ def main(args):
         # attack all the bases
         # TODO: generalize for other datasets and fst.
         # For CIFAR10, both FFE and FST use the same augmentations.
+        mean, std = data_mean_std_dict[args.dataset.lower()]
+        
         adv_batches = []
         for batch_img, batch_labels in batches:
             adv_batches.append(attacker(batch_img, batch_labels, target_label,
                                         transform = transforms.Compose([transforms.RandomHorizontalFlip(), 
-                                                                        transforms.RandomCrop(32,4)])))
+                                                                        transforms.RandomCrop(32,4),
+                                                                        transforms.Normalize(mean, std)])))
         adv_bases = torch.cat(adv_batches)
 
         # Starting coordinates of the patch
