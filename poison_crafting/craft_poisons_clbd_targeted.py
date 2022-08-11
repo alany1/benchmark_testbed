@@ -275,7 +275,7 @@ if __name__ == "__main__":
     parser.add_argument("--no-normalize", dest="normalize", action="store_false")
     parser.set_defaults(normalize=False)
     parser.add_argument(
-        "--epsilon", type=int, default=8 / 255, help="poison perturbation allowance"
+        "--epsilon", type=int, default= 16 / 255, help="poison perturbation allowance"
     )
     parser.add_argument(
         "--model", type=str, default=["resnet18"], nargs="+", help="model name"
@@ -293,7 +293,7 @@ if __name__ == "__main__":
     parser.add_argument("--patch_size", type=int, default=5, help="Size of the patch")
     parser.add_argument("--num_steps", type=int, default=20, help="Number of PGD steps")
     parser.add_argument(
-        "--step_size", type=int, default=2 / 255, help="Step size for perturbation"
+        "--step_size", type=int, default=4 / 255, help="Step size for perturbation"
     )
     parser.add_argument(
         "--poison_setups",
