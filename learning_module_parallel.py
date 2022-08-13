@@ -113,7 +113,7 @@ def set_defaults(args):
     args.epochs = sub_dict["epochs"]
     args.image_size = sub_dict["image_size"]
     args.patch_size = sub_dict["patch_size"]
-    args.train_augment = False
+    args.train_augment = True
     args.normalize = True
     args.weight_decay = 2e-04
     args.batch_size = 1024 #256 #512 #128
@@ -358,16 +358,16 @@ def get_transform(normalize, augment, dataset="CIFAR10"):
 
     if normalize and augment:
         transform_list = [
+            transforms.ToTensor(),
             transforms.RandomCrop(cropsize, padding=padding),
             transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
             transforms.Normalize(mean, std),
         ]
     elif augment:
         transform_list = [
+            transforms.ToTensor(),
             transforms.RandomCrop(cropsize, padding=padding),
             transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
         ]
     elif normalize:
         transform_list = [transforms.ToTensor(), transforms.Normalize(mean, std)]
