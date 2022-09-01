@@ -14,9 +14,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torchvision
 from torchvision import transforms as transforms
 from torch.cuda.amp import GradScaler, autocast
 
+from poison_crafting.badnets.generate import *
 from learning_module_parallel import now, get_model, load_model_from_checkpoint
 from ffcv_tools import get_dataset, train, test
 from learning_module_parallel import (
@@ -101,6 +103,7 @@ def main(args):
 
     # the limit is '8/255' but we assert that it is smaller than 9/255 to account for PIL
     # truncation.
+    print('Max norm', max(poison_perturbation_norms))
     if max(poison_perturbation_norms) - 9 / 255 < 1e-5:
             print("Attack IS clean label.")
     else:
@@ -153,6 +156,7 @@ def main(args):
     #crop = transforms.RandomCrop(cropsize, padding = padding) if args.train_augment else None
     extra_transform_train = get_transform(args.normalize, args.train_augment, args.dataset)
     extra_transform_test = get_transform(args.normalize, False, args.dataset)
+
     for epoch in range(args.epochs):
         adjust_learning_rate(optimizer, epoch, args.lr_schedule, args.lr_factor)
         loss, acc = train(
@@ -185,6 +189,13 @@ def main(args):
     p_acc = net(target_img.unsqueeze(0).to(device)).max(1)[1].item() == poisoned_label
     p_loss = criterion(net(target_img.unsqueeze(0).to(device)), torch.tensor([poisoned_label]).to(device)).item()
 
+    # random_testset = torchvision.datasets.CIFAR10(
+    #         root="./data", train=False, download=True, transform=transforms.ToTensor()
+    #     )
+    # random_test_imgs = apply_patch(torch.stack([random_testset[i][0] for i in torch.randperm(len(random_testset))[:64]]), get_red_patch())
+    # net.to(device)
+    # p_random = (sum(net(random_test_imgs.to(device)).max(1)[1] == poisoned_label)/64).item()
+    #print('Randomized results:', p_random)
     print(
         now(), " poison success: ",
         p_acc, " poisoned_label: ",
@@ -192,6 +203,8 @@ def main(args):
         net(target_img.unsqueeze(0).to(device)).max(1)[1].item(),
         "poison loss:", p_loss
     )
+        #"randomized accuracy", p_random
+    #)
 
     # Dictionary to write contest the csv file
     stats = OrderedDict(

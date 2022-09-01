@@ -32,38 +32,51 @@ from learning_module import (
 from tinyimagenet_module import TinyImageNet
 
 
-class AttackPGD(nn.Module):
+class PerturbPGD(nn.Module):
     """Class for the PGD adversarial attack"""
 
     def __init__(self, basic_net, config):
-        super(AttackPGD, self).__init__()
+        super(PerturbPGD, self).__init__()
         self.basic_net = basic_net
         self.step_size = config["step_size"]
         self.epsilon = config["epsilon"]
         self.num_steps = config["num_steps"]
 
-    def forward(self, inputs, targets):
+    def forward(self, inputs, targets, device = 'cuda', samples = 64, transform = None):
         """Forward function for the nn class
         inputs:
-            inputs:     The input to the network
-            targets:    True labels
+            inputs:         The input to the network
+            targets:        True labels
+            target_class:   Label to be classified into
         reutrn:
             adversarially perturbed inputs
         """
 
         x = inputs.detach()
         x = x + torch.zeros_like(x).uniform_(-self.epsilon, self.epsilon)
-        print(torch.max(x), torch.max(inputs))
+        #print(torch.max(x), torch.max(inputs))
         for i in range(self.num_steps):
             x.requires_grad_()
             with torch.enable_grad():
-                loss = nn.functional.cross_entropy(
-                    self.basic_net(x), targets, reduction="sum"
-                )
-            grad = torch.autograd.grad(loss, [x])[0]
+                cumulative = 0
+                for _ in range(samples):
+                    if not transform:
+                        loss = nn.functional.cross_entropy(
+                            self.basic_net(x), targets, reduction="sum"
+                        )
+                    else:
+                        loss = nn.functional.cross_entropy(
+                            self.basic_net(transform(x)), targets, reduction="sum"
+                        )
+                    cumulative += loss
+                cumulative = cumulative / samples
+            grad = torch.autograd.grad(cumulative, [x])[0]
             x = x.detach() + self.step_size * torch.sign(grad.detach())
             x = torch.min(torch.max(x, inputs - self.epsilon), inputs + self.epsilon)
             x = torch.clamp(x, 0.0, 1.0)
+        
+        print(now(), 'Finished minibatch with max perturb:', torch.max(inputs-x))  
+        #print(now(), 'Finished sub-batch.')
         return x
 
 
@@ -74,7 +87,7 @@ def main(args):
     reutrn:
         void
     """
-    print(now(), "craft_poisons_clbd.py main() running...")
+    print(now(), "craft_poisons_clbd_targeted_robust.py main() running...")
     mean, std = data_mean_std_dict[args.dataset.lower()]
     mean = list(mean)
     std = list(std)
@@ -92,7 +105,7 @@ def main(args):
     ####################################################
     #               Dataset
     if args.dataset.lower() == "cifar10":
-        transform_test = get_transform(False, False)
+        transform_test = get_transform(normalize = False, augment = False)
         testset = torchvision.datasets.CIFAR10(
             root="./data", train=False, download=True, transform=transform_test
         )
@@ -100,7 +113,7 @@ def main(args):
             root="./data", train=True, download=True, transform=transform_test
         )
     elif args.dataset.lower() == "tinyimagenet_first":
-        transform_test = get_transform(False, False, dataset=args.dataset)
+        transform_test = get_transform(normalize = False, augment = False, dataset=args.dataset)
         trainset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
@@ -114,7 +127,7 @@ def main(args):
             classes="firsthalf",
         )
     elif args.dataset.lower() == "tinyimagenet_last":
-        transform_test = get_transform(False, False, dataset=args.dataset)
+        transform_test = get_transform(normalize = False, augment = False, dataset=args.dataset)
         trainset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
@@ -128,7 +141,7 @@ def main(args):
             classes="lasthalf",
         )
     elif args.dataset.lower() == "tinyimagenet_all":
-        transform_test = get_transform(False, False, dataset=args.dataset)
+        transform_test = get_transform(normalize = False, augment = False, dataset=args.dataset)
         trainset = TinyImageNet(
             TINYIMAGENET_ROOT,
             split="train",
@@ -145,11 +158,12 @@ def main(args):
         print("Dataset not yet implemented. Exiting from craft_poisons_clbd.py.")
         sys.exit()
     ###################################################
+
     for pb in range(100):
         with open(args.poison_setups, "rb") as handle:
             setup_dicts = pickle.load(handle)
         setup = setup_dicts[pb]
-
+        pth = args.poisons_path + str(pb)
         target_img_idx = (
             setup["target index"] if args.target_img_idx is None else args.target_img_idx
         )
@@ -170,7 +184,7 @@ def main(args):
             "step_size": args.step_size,
             "num_steps": args.num_steps,
         }
-        attacker = AttackPGD(model, config)
+        attacker = PerturbPGD(model, config)
 
         # get patch
         trans_trigger = transforms.Compose(
@@ -180,16 +194,27 @@ def main(args):
         trigger = trans_trigger(trigger).unsqueeze(0).to(device)
 
         # craft poisons
-        num_batches = int(np.ceil(base_imgs.shape[0] / 1000))
+        #print(base_imgs.shape)
+        #num_batches = int(np.ceil(base_imgs.shape[0] / 1000))
+        batch_size = 32
+        num_batches = int(np.ceil(base_imgs.shape[0]/batch_size))
+        print(f'Batch size {batch_size} for {num_batches} batches')
         batches = [
-            (base_imgs[1000 * i : 1000 * (i + 1)], base_labels[1000 * i : 1000 * (i + 1)])
+            (base_imgs[batch_size * i : batch_size * (i + 1)], base_labels[batch_size * i : batch_size * (i + 1)])
             for i in range(num_batches)
         ]
 
         # attack all the bases
+        # TODO: generalize for other datasets and fst.
+        # For CIFAR10, both FFE and FST use the same augmentations.
+        mean, std = data_mean_std_dict[args.dataset.lower()]
+        
         adv_batches = []
         for batch_img, batch_labels in batches:
-            adv_batches.append(attacker(batch_img, batch_labels))
+            adv_batches.append(attacker(batch_img, batch_labels,
+                                        transform = transforms.Compose([transforms.RandomHorizontalFlip(), 
+                                                                        transforms.RandomCrop(32,4),
+                                                                        transforms.Normalize(mean, std)])))
         adv_bases = torch.cat(adv_batches)
 
         # Starting coordinates of the patch
@@ -228,8 +253,10 @@ def main(args):
             # adv_bases_masked[i, :, 0 : args.patch_size, 0 : args.patch_size] = torch.flip(
             #     trigger, (-1,)
             # )
-        #final_pert = adv_bases_masked - base_imgs
         final_pert = torch.clamp(adv_bases_masked - base_imgs, -64/256, 64/256)
+        #poisons = base_imgs + final_pert
+        #final_pert = torch.clamp(adv_bases_masked - base_imgs, -args.epsilon, args.epsilon)
+        #final_pert = adv_bases_masked - base_imgs
         poisons = base_imgs + final_pert
 
         poisons = poisons.clamp(0, 1).cpu()
@@ -248,21 +275,22 @@ def main(args):
         ####################################################
         #        Save Poisons
         print(now(), "Saving poisons...")
-        if not os.path.isdir(args.poisons_path + f'/{pb}'):
-            os.makedirs(args.poisons_path + f'/{pb}')
-        with open(os.path.join(args.poisons_path+ f'/{pb}', "poisons.pickle"), "wb") as handle:
+        if not os.path.isdir(pth):
+            os.makedirs(pth)
+        with open(os.path.join(pth, "poisons.pickle"), "wb") as handle:
             pickle.dump(poisoned_tuples, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        with open(os.path.join(args.poisons_path+ f'/{pb}', "target.pickle"), "wb") as handle:
+        with open(os.path.join(pth, "target.pickle"), "wb") as handle:
             pickle.dump(
                 target_tuple,
                 handle,
                 protocol=pickle.HIGHEST_PROTOCOL,
             )
-        with open(os.path.join(args.poisons_path+ f'/{pb}', "base_indices.pickle"), "wb") as handle:
+        with open(os.path.join(pth, "base_indices.pickle"), "wb") as handle:
             pickle.dump(base_indices, handle, protocol=pickle.HIGHEST_PROTOCOL)
         ####################################################
 
-        print(now(), "Finished batch", pb, ".")
+        print(now(), "Finished crafting batch", pb)
+        
 
 
 if __name__ == "__main__":
@@ -289,7 +317,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--image_size", type=int, default=32, help="Image Size")
     parser.add_argument("--patch_size", type=int, default=5, help="Size of the patch")
-    parser.add_argument("--num_steps", type=int, default=20, help="Number of PGD steps")
+    parser.add_argument("--num_steps", type=int, default=25, help="Number of PGD steps")
     parser.add_argument(
         "--step_size", type=int, default=4 / 255, help="Step size for perturbation"
     )
